@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { MerchItem, OrderRequest, Product, RewardsCampaign, Review, RewardProfile, Settings, CartItem } from '../types';
 import { defaultSettings, sampleMerchItems, sampleProducts, sampleCampaigns } from '../lib/defaults';
 import { apiGetBootstrap, apiPersistState } from '../lib/api';
 import { useAuth } from './AuthContext';
+import { FullScreenLoader, FallbackBanner } from '../components/layout/AppStatusOverlays';
 
 interface AppContextType {
   products: Product[];
@@ -25,6 +26,8 @@ interface AppContextType {
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   cartTotal: number;
+  usingFallbackDefaults: boolean;
+  retryBootstrap: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -40,6 +43,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [merch, setMerch] = useState<MerchItem[]>(sampleMerchItems);
   const [campaigns, setCampaigns] = useState<RewardsCampaign[]>(sampleCampaigns);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [usingFallbackDefaults, setUsingFallbackDefaults] = useState(false);
+  const [bootstrapTick, setBootstrapTick] = useState(0);
+
+  const retryBootstrap = useCallback(() => {
+    setIsLoaded(false);
+    setBootstrapTick((tick) => tick + 1);
+  }, []);
 
   useEffect(() => {
     const loadedCart = localStorage.getItem('cart');
@@ -50,7 +60,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setCart([]);
       }
     }
+  }, []);
 
+  useEffect(() => {
     let isMounted = true;
 
     const loadBootstrap = async () => {
@@ -64,6 +76,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setRewardProfiles(bootstrap.state.rewardProfiles ?? []);
         setMerch(bootstrap.state.merch?.length ? bootstrap.state.merch : sampleMerchItems);
         setCampaigns(bootstrap.state.campaigns?.length ? bootstrap.state.campaigns : sampleCampaigns);
+        setUsingFallbackDefaults(false);
       } catch (error) {
         console.error('Failed to load backend app state.', error);
         if (!isMounted) return;
@@ -74,6 +87,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setRewardProfiles([]);
         setMerch(sampleMerchItems);
         setCampaigns(sampleCampaigns);
+        setUsingFallbackDefaults(true);
       } finally {
         if (isMounted) {
           setIsLoaded(true);
@@ -86,7 +100,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [bootstrapTick]);
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
@@ -142,7 +156,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     [cart],
   );
 
-  if (!isLoaded) return null;
+  if (!isLoaded) return <FullScreenLoader />;
 
   return (
     <AppContext.Provider value={{
@@ -155,8 +169,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       merch, setMerch,
       campaigns, setCampaigns,
       addToCart, removeFromCart, clearCart, cartTotal,
+      usingFallbackDefaults, retryBootstrap,
     }}>
       {children}
+      {usingFallbackDefaults && <FallbackBanner onRetry={retryBootstrap} />}
     </AppContext.Provider>
   );
 };

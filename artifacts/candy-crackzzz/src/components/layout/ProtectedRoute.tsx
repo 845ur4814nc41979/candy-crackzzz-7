@@ -2,12 +2,13 @@ import { ReactNode } from 'react';
 import { Redirect } from 'wouter';
 import { useAuth } from '@/context/AuthContext';
 import { AdminRole } from '@/types';
+import { FullScreenLoader } from '@/components/layout/AppStatusOverlays';
 
 export default function ProtectedRoute({ children, allowedRoles }: { children: ReactNode; allowedRoles?: AdminRole[] }) {
   const { isLoaded, isLoggedIn, hasRole } = useAuth();
 
   if (!isLoaded) {
-    return null;
+    return <FullScreenLoader message="Checking your session…" />;
   }
 
   if (!isLoggedIn) {
