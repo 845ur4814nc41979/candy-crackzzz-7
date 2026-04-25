@@ -26,6 +26,7 @@ import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminProductForm from "@/pages/admin/AdminProductForm";
 import AdminOrders from "@/pages/admin/AdminOrdersReferralBadges";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminRewards from "@/pages/admin/AdminRewards";
 import AdminBranding from "@/pages/admin/AdminBranding";
 import AdminPayments from "@/pages/admin/AdminPayments";
 import AdminReviews from "@/pages/admin/AdminReviews";
@@ -70,6 +71,9 @@ function Router() {
       </Route>
       <Route path="/admin/settings">
         {() => <ProtectedRoute allowedRoles={['owner']}><AdminSettings /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/rewards">
+        {() => <ProtectedRoute allowedRoles={['owner']}><AdminRewards /></ProtectedRoute>}
       </Route>
       <Route path="/admin/branding">
         {() => <ProtectedRoute allowedRoles={['owner']}><AdminBranding /></ProtectedRoute>}
