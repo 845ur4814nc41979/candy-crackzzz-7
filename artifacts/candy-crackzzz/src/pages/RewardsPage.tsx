@@ -4,17 +4,25 @@ import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Gift, LogOut, Search, Trophy, Users, Copy } from 'lucide-react';
 import { ensureRewardProfileReferralCode, normalizePhone } from '@/lib/rewards';
+import { useToast } from '@/hooks/use-toast';
 
 const STORAGE_KEY = 'cc_rewards_lookup_phone';
 
 export default function RewardsPage() {
   const { rewardProfiles, orders, settings } = useAppContext();
+  const { toast } = useToast();
   const [phone, setPhone] = useState('');
   const [submittedPhone, setSubmittedPhone] = useState('');
   const [error, setError] = useState('');
   const [copiedState, setCopiedState] = useState<'code' | 'share' | ''>('');
+  const [shareOpen, setShareOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
+  const [shareSupported, setShareSupported] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIosSafari, setIsIosSafari] = useState(false);
 
   useEffect(() => {
     const savedPhone = localStorage.getItem(STORAGE_KEY) || '';
@@ -22,6 +30,15 @@ export default function RewardsPage() {
       setPhone(savedPhone);
       setSubmittedPhone(savedPhone);
     }
+  }, []);
+
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const safari = ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|Chrome/.test(ua);
+    setIsIosSafari(safari);
+    setShareSupported(typeof navigator.share === 'function');
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
   }, []);
 
   const normalizedSubmittedPhone = normalizePhone(submittedPhone);
@@ -80,17 +97,37 @@ export default function RewardsPage() {
   };
 
   const currentReferralCode = matchedProfile ? ensureRewardProfileReferralCode(matchedProfile) : '';
-  const shareText = currentReferralCode ? `Use my Candy Crackzzz referral code: ${currentReferralCode}` : '';
+  const shareUrl = `${window.location.origin}/rewards`;
+  const shareText = currentReferralCode ? `Try Candy Crackzzz and use my referral code ${currentReferralCode}. Join rewards here: ${shareUrl}` : '';
+  const shareTitle = 'Candy Crackzzz Referral';
 
   const copyText = async (value: string, type: 'code' | 'share') => {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedState(type);
       window.setTimeout(() => setCopiedState(''), 1800);
+      toast({ title: 'Copied', description: 'Ready to paste or share.' });
     } catch {
-      setCopiedState('');
+      toast({ title: 'Copy failed', description: 'Try again or use share options.', variant: 'destructive' });
     }
   };
+
+  const triggerNativeShare = async () => {
+    if (!currentReferralCode) return;
+    const data = { title: shareTitle, text: shareText, url: shareUrl };
+    try {
+      if (navigator.share) {
+        await navigator.share(data);
+        return;
+      }
+    } catch {
+      setShareOpen(true);
+      return;
+    }
+    setShareOpen(true);
+  };
+
+  const installHelpVisible = isIosSafari && !isStandalone;
 
   return (
     <PageLayout>
@@ -170,12 +207,20 @@ export default function RewardsPage() {
                       <div className="text-2xl font-black tracking-[0.15em] text-primary">{currentReferralCode}</div>
                     </div>
                     <div className="flex flex-wrap gap-3">
+                      <Button type="button" onClick={() => void triggerNativeShare()} className="font-black uppercase tracking-wider">
+                        Share Referral
+                      </Button>
                       <Button type="button" variant="outline" onClick={() => void copyText(currentReferralCode, 'code')} className="font-black uppercase tracking-wider">
                         <Copy className="w-4 h-4 mr-2" /> {copiedState === 'code' ? 'Copied' : 'Copy Code'}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => void copyText(shareText, 'share')} className="font-black uppercase tracking-wider">
                         <Copy className="w-4 h-4 mr-2" /> {copiedState === 'share' ? 'Copied' : 'Copy Share Text'}
                       </Button>
+                      {installHelpVisible && (
+                        <Button type="button" variant="outline" onClick={() => setInstallOpen(true)} className="font-black uppercase tracking-wider">
+                          Install App
+                        </Button>
+                      )}
                     </div>
                     <div className="text-sm text-muted-foreground border border-border rounded-xl p-3 bg-card/50">{shareText}</div>
                   </div>
@@ -242,6 +287,41 @@ export default function RewardsPage() {
           )}
         </div>
       </div>
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Share your referral</DialogTitle>
+            <DialogDescription>Use one of the options below if your browser does not open the system share sheet.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Button asChild variant="outline"><a href={`sms:?&body=${encodeURIComponent(shareText)}`}>SMS</a></Button>
+            <Button asChild variant="outline"><a href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`}>Email</a></Button>
+            <Button asChild variant="outline"><a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer">WhatsApp</a></Button>
+            <Button asChild variant="outline"><a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer">Facebook</a></Button>
+          </div>
+          <div className="pt-2">
+            <Button className="w-full" onClick={() => void copyText(shareText, 'share')}>Copy share text</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={installOpen} onOpenChange={setInstallOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Candy Crackzzz to Home Screen</DialogTitle>
+            <DialogDescription>
+              On iPhone/iPad, Safari installs through the Share menu.
+            </DialogDescription>
+          </DialogHeader>
+          <ol className="space-y-3 text-sm font-medium list-decimal pl-5">
+            <li>Tap the Safari Share button.</li>
+            <li>Scroll and choose <span className="font-black">Add to Home Screen</span>.</li>
+            <li>Tap <span className="font-black">Add</span>.</li>
+          </ol>
+          <div className="rounded-2xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+            This app cannot force Apple’s install flow. This guide helps you finish the native iPhone/iPad process.
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }
