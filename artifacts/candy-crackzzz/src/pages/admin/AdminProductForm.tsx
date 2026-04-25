@@ -11,7 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import ImageUpload from '@/components/ui/ImageUpload';
-import AiWriteButton from '@/components/admin/AiWriteButton';
+import SmartDescriptionButton from '@/components/admin/SmartDescriptionButton';
+import { generateProductDescription, generateShortProductDescription } from '@/lib/smartDescription';
 import { Product, ProductCategory } from '@/types';
 
 const defaultProduct: Omit<Product, 'id' | 'createdAt'> = {
@@ -162,13 +163,14 @@ export default function AdminProductForm() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <Label className="font-bold">Short Description (Card View)</Label>
-                <AiWriteButton
-                  prompt={`Write a short 1-sentence product description (max 80 characters) for a candy-coated fruit treat called "${formData.name || 'this product'}". Be punchy and exciting.`}
-                  onResult={text => handleChange('shortDescription', text.slice(0, 100))}
+                <SmartDescriptionButton
+                  generate={() => generateShortProductDescription(formData)}
+                  onApply={text => handleChange('shortDescription', text.slice(0, 100))}
                   disabled={!formData.name}
-                  label="AI Draft"
+                  label="Generate Smart Description"
+                  testId="smart-desc-product-short"
                 />
               </div>
               <Input 
@@ -182,12 +184,14 @@ export default function AdminProductForm() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <Label className="font-bold">Full Description (Detail View)</Label>
-                <AiWriteButton
-                  prompt={`Write a 2-3 sentence product description for a candy-coated fruit treat called "${formData.name || 'this product'}"${formData.flavorNotes ? ` with flavor notes: ${formData.flavorNotes}` : ''}. Be vivid and bold. Perfect for a candy snack brand.`}
-                  onResult={text => handleChange('description', text)}
+                <SmartDescriptionButton
+                  generate={() => generateProductDescription(formData)}
+                  onApply={text => handleChange('description', text)}
                   disabled={!formData.name}
+                  label="Generate Smart Description"
+                  testId="smart-desc-product-full"
                 />
               </div>
               <Textarea 

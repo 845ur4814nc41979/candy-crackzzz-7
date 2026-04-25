@@ -99,7 +99,7 @@ export const defaultSettings: Settings = {
   helperGreeting: 'Need help picking something sweet? Tell me what flavors you like.',
   helperMaxRecommendations: 3,
   helperAllergyDisclaimer: 'Please confirm ingredients and allergy concerns before ordering.',
-  helperFallbackMessage: 'I can help with candy flavors, fruit flavors, trays, merch, rewards, pickup, delivery, and custom order ideas.',
+  helperFallbackMessage: 'I can help with Candy CrackZZZ flavors, fruit, candy-dipped treats, merch, rewards, pickup, delivery, or custom order ideas.',
 };
 
 export const sampleProducts: Product[] = [

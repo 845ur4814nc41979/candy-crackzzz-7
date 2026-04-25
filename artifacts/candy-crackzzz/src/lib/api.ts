@@ -249,10 +249,9 @@ export function apiTestSms(to?: string) {
   );
 }
 
-// ----- AI Generate -----
-export function apiGenerateAI(prompt: string, context?: string) {
-  return apiRequest<{ ok: boolean; text: string; message?: string }>('/ai/generate', {
-    method: 'POST',
-    body: JSON.stringify({ prompt, context }),
-  });
-}
+// NOTE: Product/merch description generation is now 100% local (see
+// src/lib/smartDescription.ts and src/components/admin/SmartDescriptionButton.tsx).
+// The previous apiGenerateAI() helper that called /api/cc/ai/generate has
+// been removed from the client to guarantee no OPENAI_API_KEY dependency.
+// The backend route still exists in artifacts/api-server but is no longer
+// reachable from the UI.

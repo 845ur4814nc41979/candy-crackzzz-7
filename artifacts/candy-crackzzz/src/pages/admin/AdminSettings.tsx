@@ -264,36 +264,42 @@ export default function AdminSettings() {
         </TabsContent>
 
         <TabsContent value="helper" className="max-w-3xl">
-          <SectionCard title="On-Site Candy Helper" icon={<MessageCircle className="w-4 h-4" />}>
-            <p className="text-sm text-muted-foreground -mt-2 pb-2">
-              A small floating helper button appears on customer-facing pages. It only talks about your candy flavors, fruit flavors, party trays, merch, rewards, pickup, delivery, and custom order ideas. It uses your real menu and merch data — no external AI service is called.
-            </p>
-            <div className="flex items-center justify-between p-3 border-b border-border">
-              <div>
-                <Label className="font-bold">Enable Helper</Label>
-                <p className="text-sm text-muted-foreground">Master switch — turns the floating helper button off everywhere.</p>
-              </div>
-              <Switch checked={formData.helperEnabled} onCheckedChange={v => set({ helperEnabled: v })} />
+          <SectionCard title="On-Site Candy Helper (Floating Chatbot)" icon={<MessageCircle className="w-4 h-4" />}>
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 -mt-2">
+              <p className="text-sm font-bold text-primary">This section controls the floating Candy Helper chatbot button only.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                The toggles below decide whether the small "💬 HELPER" button appears in the bottom-right corner on customer pages. They do NOT control infinite scroll, pagination, or product loading. The helper runs 100% locally in the browser — no OpenAI, no Gemini, no API key required.
+              </p>
             </div>
             <div className="flex items-center justify-between p-3 border-b border-border">
               <div>
-                <Label className="font-bold">Show Floating Button on Customer Pages</Label>
-                <p className="text-sm text-muted-foreground">When off, the helper stays disabled even if enabled above.</p>
+                <Label className="font-bold">Enable Candy Helper</Label>
+                <p className="text-sm text-muted-foreground">Master switch for the floating chatbot.</p>
               </div>
-              <Switch checked={formData.helperShowFloating} onCheckedChange={v => set({ helperShowFloating: v })} />
+              <Switch checked={formData.helperEnabled} onCheckedChange={v => set({ helperEnabled: v })} data-testid="toggle-helper-enabled" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'helperShowOnHome' as const, label: 'Home page' },
-                { key: 'helperShowOnMenu' as const, label: 'Menu page' },
-                { key: 'helperShowOnMerch' as const, label: 'Merch page' },
-                { key: 'helperShowOnCart' as const, label: 'Cart page' },
-              ].map(t => (
-                <div key={t.key} className="flex items-center justify-between p-2 rounded-lg border border-border">
-                  <Label className="font-bold text-sm">{t.label}</Label>
-                  <Switch checked={formData[t.key]} onCheckedChange={v => set({ [t.key]: v })} />
-                </div>
-              ))}
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Show floating helper button</Label>
+                <p className="text-sm text-muted-foreground">When off, the helper bubble stays hidden even if "Enable Candy Helper" is on.</p>
+              </div>
+              <Switch checked={formData.helperShowFloating} onCheckedChange={v => set({ helperShowFloating: v })} data-testid="toggle-helper-floating" />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wider text-muted-foreground mb-2">Show helper bubble on these customer pages:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'helperShowOnHome' as const, label: 'Show helper on Home' },
+                  { key: 'helperShowOnMenu' as const, label: 'Show helper on Menu' },
+                  { key: 'helperShowOnMerch' as const, label: 'Show helper on Merch' },
+                  { key: 'helperShowOnCart' as const, label: 'Show helper on Cart' },
+                ].map(t => (
+                  <div key={t.key} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                    <Label className="font-bold text-sm">{t.label}</Label>
+                    <Switch checked={formData[t.key]} onCheckedChange={v => set({ [t.key]: v })} data-testid={`toggle-${t.key}`} />
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
               {[

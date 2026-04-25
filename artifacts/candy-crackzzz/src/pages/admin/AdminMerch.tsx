@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import AiWriteButton from '@/components/admin/AiWriteButton';
+import SmartDescriptionButton from '@/components/admin/SmartDescriptionButton';
+import { generateMerchDescription } from '@/lib/smartDescription';
 import ImageUpload from '@/components/ui/ImageUpload';
 import { Plus, Pencil, Trash2, Search, Shirt, ChevronUp, ChevronDown, Eye, EyeOff, Star, ImageOff } from 'lucide-react';
 import type { MerchCategory, MerchItem, MerchStatus } from '@/types';
@@ -353,12 +354,14 @@ export default function AdminMerch() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <Label className="font-bold">Description</Label>
-                <AiWriteButton
-                  prompt={`Write a short, punchy product description for a streetwear-inspired candy brand merch item called "${form.name || 'this item'}"${form.category ? ` (category: ${form.category})` : ''}. Keep it 2-3 sentences, bold and exciting.`}
-                  onResult={text => set({ description: text })}
+                <SmartDescriptionButton
+                  generate={() => generateMerchDescription(form)}
+                  onApply={text => set({ description: text })}
                   disabled={!form.name}
+                  label="Generate Smart Description"
+                  testId="smart-desc-merch"
                 />
               </div>
               <Textarea
