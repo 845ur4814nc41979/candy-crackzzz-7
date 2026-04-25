@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Mail, Info } from 'lucide-react';
+import { Save, Mail, Info, MapPin, MessageCircle } from 'lucide-react';
 import { Settings } from '@/types';
 
 type SectionCardProps = {
@@ -55,11 +55,12 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="bg-card border border-border h-auto p-1 mb-6 flex flex-wrap gap-1 max-w-2xl">
+        <TabsList className="bg-card border border-border h-auto p-1 mb-6 flex flex-wrap gap-1 max-w-3xl">
           <TabsTrigger value="general" className="font-bold uppercase tracking-wider px-4 py-2.5">General</TabsTrigger>
           <TabsTrigger value="messages" className="font-bold uppercase tracking-wider px-4 py-2.5">Messages</TabsTrigger>
           <TabsTrigger value="features" className="font-bold uppercase tracking-wider px-4 py-2.5">Features</TabsTrigger>
           <TabsTrigger value="logistics" className="font-bold uppercase tracking-wider px-4 py-2.5">Logistics</TabsTrigger>
+          <TabsTrigger value="helper" className="font-bold uppercase tracking-wider px-4 py-2.5">Helper</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="max-w-3xl">
@@ -81,6 +82,16 @@ export default function AdminSettings() {
             <div className="space-y-2">
               <Label className="font-bold">Service Area (shown publicly)</Label>
               <Input value={formData.serviceArea} onChange={e => set({ serviceArea: e.target.value })} placeholder="e.g. Spring Hill, FL and surrounding areas" className="bg-background font-bold h-12" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold flex items-center gap-2"><MapPin className="w-4 h-4" /> Business / Pickup Address</Label>
+              <Input
+                value={formData.businessAddress}
+                onChange={e => set({ businessAddress: e.target.value })}
+                placeholder="e.g. 123 Main St, Spring Hill, FL 34608"
+                className="bg-background font-bold h-12"
+              />
+              <p className="text-xs text-muted-foreground">Used as the starting point for delivery directions in the admin order view. Not shown publicly.</p>
             </div>
             <div className="space-y-2">
               <Label className="font-bold">About Us / Footer Text</Label>
@@ -230,6 +241,89 @@ export default function AdminSettings() {
                 )}
               </div>
             )}
+          </SectionCard>
+
+          <SectionCard title="Delivery Directions" icon={<MapPin className="w-4 h-4" />}>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Show "Open Directions" button on delivery orders</Label>
+                <p className="text-sm text-muted-foreground">Adds a Google Maps directions link in the admin order view from your business address to the customer's delivery address.</p>
+              </div>
+              <Switch
+                checked={formData.deliveryDirectionsButtonEnabled}
+                onCheckedChange={v => set({ deliveryDirectionsButtonEnabled: v })}
+              />
+            </div>
+            <div className="bg-muted/20 rounded-xl p-4 border border-border space-y-2">
+              <p className="text-sm font-bold">Current business address:</p>
+              <p className="text-sm text-muted-foreground">
+                {formData.businessAddress || <span className="text-amber-400">Not set — add it in the General tab to enable directions.</span>}
+              </p>
+            </div>
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="helper" className="max-w-3xl">
+          <SectionCard title="On-Site Candy Helper" icon={<MessageCircle className="w-4 h-4" />}>
+            <p className="text-sm text-muted-foreground -mt-2 pb-2">
+              A small floating helper button appears on customer-facing pages. It only talks about your candy flavors, fruit flavors, party trays, merch, rewards, pickup, delivery, and custom order ideas. It uses your real menu and merch data — no external AI service is called.
+            </p>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Enable Helper</Label>
+                <p className="text-sm text-muted-foreground">Master switch — turns the floating helper button off everywhere.</p>
+              </div>
+              <Switch checked={formData.helperEnabled} onCheckedChange={v => set({ helperEnabled: v })} />
+            </div>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Show Floating Button on Customer Pages</Label>
+                <p className="text-sm text-muted-foreground">When off, the helper stays disabled even if enabled above.</p>
+              </div>
+              <Switch checked={formData.helperShowFloating} onCheckedChange={v => set({ helperShowFloating: v })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { key: 'helperShowOnHome' as const, label: 'Home page' },
+                { key: 'helperShowOnMenu' as const, label: 'Menu page' },
+                { key: 'helperShowOnMerch' as const, label: 'Merch page' },
+                { key: 'helperShowOnCart' as const, label: 'Cart page' },
+              ].map(t => (
+                <div key={t.key} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                  <Label className="font-bold text-sm">{t.label}</Label>
+                  <Switch checked={formData[t.key]} onCheckedChange={v => set({ [t.key]: v })} />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {[
+                { key: 'helperAllowMerchSuggestions' as const, label: 'Suggest merch' },
+                { key: 'helperAllowRewardsSuggestions' as const, label: 'Talk about rewards basics' },
+                { key: 'helperAllowReferralSuggestions' as const, label: 'Talk about referrals basics' },
+                { key: 'helperAllowCustomOrderIdeas' as const, label: 'Suggest custom order ideas' },
+              ].map(t => (
+                <div key={t.key} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                  <Label className="font-bold text-sm">{t.label}</Label>
+                  <Switch checked={formData[t.key]} onCheckedChange={v => set({ [t.key]: v })} />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Greeting Message</Label>
+              <Input value={formData.helperGreeting} onChange={e => set({ helperGreeting: e.target.value })} className="bg-background font-medium h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Fallback Message (when nothing matches)</Label>
+              <Textarea value={formData.helperFallbackMessage} onChange={e => set({ helperFallbackMessage: e.target.value })} className="bg-background font-medium min-h-[70px] resize-none" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Allergy Disclaimer (shown under each reply)</Label>
+              <Input value={formData.helperAllergyDisclaimer} onChange={e => set({ helperAllergyDisclaimer: e.target.value })} className="bg-background font-medium h-11" />
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Label className="font-bold">Max Recommendations Per Reply</Label>
+              <Input type="number" min={1} max={6} value={formData.helperMaxRecommendations} onChange={e => set({ helperMaxRecommendations: Math.max(1, parseInt(e.target.value) || 3) })} className="bg-background font-bold h-11" />
+            </div>
           </SectionCard>
         </TabsContent>
       </Tabs>

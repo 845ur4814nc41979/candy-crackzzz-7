@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import AiWriteButton from '@/components/admin/AiWriteButton';
-import { Plus, Pencil, Trash2, Search, Shirt, ChevronUp, ChevronDown, Eye, EyeOff, Star } from 'lucide-react';
+import ImageUpload from '@/components/ui/ImageUpload';
+import { Plus, Pencil, Trash2, Search, Shirt, ChevronUp, ChevronDown, Eye, EyeOff, Star, ImageOff } from 'lucide-react';
 import type { MerchCategory, MerchItem, MerchStatus } from '@/types';
 
 const STATUS_LABELS: Record<MerchStatus, string> = {
@@ -184,6 +185,7 @@ export default function AdminMerch() {
 
   const totalActive = merch.filter(m => m.isActive).length;
   const totalFeatured = merch.filter(m => m.isFeatured && m.isActive).length;
+  const itemsMissingImage = merch.filter(m => m.isActive && !m.imageUrl).length;
 
   return (
     <AdminLayout>
@@ -204,6 +206,15 @@ export default function AdminMerch() {
           </Button>
         </div>
       </div>
+
+      {itemsMissingImage > 0 && (
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+          <ImageOff className="w-5 h-5 text-amber-400 shrink-0" />
+          <p className="text-sm font-bold text-amber-100">
+            Some merch items are missing images ({itemsMissingImage}). Click the merch image area in the edit dialog to upload or replace it.
+          </p>
+        </div>
+      )}
 
       <div className="relative mb-5">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -385,17 +396,23 @@ export default function AdminMerch() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="font-bold">Image URL</Label>
-              <Input
+            <div className="space-y-3">
+              <Label className="font-bold">Merch Image</Label>
+              <p className="text-xs text-muted-foreground -mt-1">Click the image area to upload from your device or photo library. Hover the preview to Replace or Remove.</p>
+              <ImageUpload
                 value={form.imageUrl}
-                onChange={e => set({ imageUrl: e.target.value })}
-                placeholder="https://... or leave blank"
-                className="h-11 bg-background"
+                onChange={(url) => set({ imageUrl: url })}
+                className="w-full"
               />
-              {form.imageUrl && (
-                <img src={form.imageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-border" onError={() => set({ imageUrl: '' })} />
-              )}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Or paste an image URL</Label>
+                <Input
+                  value={form.imageUrl?.startsWith('data:') ? '' : form.imageUrl}
+                  onChange={e => set({ imageUrl: e.target.value })}
+                  placeholder="https://..."
+                  className="h-10 bg-background text-sm"
+                />
+              </div>
             </div>
 
             <div className="space-y-3">

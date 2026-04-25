@@ -3,8 +3,10 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import { useAppContext } from '@/context/AppContext';
 import { Badge } from '@/components/ui/badge';
 import { OrderStatus } from '@/types';
-import { ChevronDown, Package, User, Calendar, MapPin, CreditCard, StickyNote } from 'lucide-react';
+import { ChevronDown, Package, User, Calendar, MapPin, CreditCard, StickyNote, Navigation, AlertTriangle } from 'lucide-react';
 import { awardCompletedOrderRewards } from '@/lib/rewards';
+import { buildGoogleMapsDirectionsUrl, hasUsableAddress } from '@/lib/directions';
+import { Button } from '@/components/ui/button';
 
 const ALL_STATUSES: OrderStatus[] = ['new', 'pending', 'confirmed', 'ready', 'picked-up', 'completed', 'cancelled'];
 
@@ -146,7 +148,35 @@ export default function AdminOrdersReferralBadges() {
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground mb-2"><Calendar className="w-4 h-4" /> Logistics</div>
                       <Badge variant="outline" className="uppercase text-[10px] font-black tracking-wider">{order.pickupOrDelivery}</Badge>
                       <div className="text-sm font-bold text-secondary">{new Date(order.requestedDate).toLocaleDateString()} @ {order.requestedTime}</div>
-                      {order.pickupOrDelivery === 'delivery' && order.deliveryAddress && <div className="flex items-start gap-1 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />{order.deliveryAddress}</div>}
+                      {order.pickupOrDelivery === 'delivery' && order.deliveryAddress && (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-start gap-1 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />{order.deliveryAddress}</div>
+                          {settings.deliveryDirectionsButtonEnabled && (
+                            hasUsableAddress(settings.businessAddress) ? (
+                              <Button
+                                asChild
+                                size="sm"
+                                className="w-full font-black uppercase tracking-wider"
+                              >
+                                <a
+                                  href={buildGoogleMapsDirectionsUrl(settings.businessAddress, order.deliveryAddress)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Navigation className="w-4 h-4 mr-2" /> Open Directions
+                                </a>
+                              </Button>
+                            ) : (
+                              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+                                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                <p className="text-xs font-bold text-amber-100">
+                                  Add your business address in Settings → General to enable route directions.
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -1,50 +1,150 @@
 import type { MerchItem, Product, Settings } from '@/types';
 
-export type HelperReply = { reply: string; recommendations: Array<{ kind: 'product' | 'merch'; id: string; name: string; note?: string }> };
+export type HelperRecommendation = {
+  kind: 'product' | 'merch';
+  id: string;
+  name: string;
+  slug?: string;
+};
 
-const keywordMap = [
-  { key: 'blue raspberry', tokens: ['blue raspberry'], labels: ['blue raspberry'] },
-  { key: 'strawberry', tokens: ['strawberry'], labels: ['strawberry'] },
-  { key: 'mango', tokens: ['mango'], labels: ['mango', 'tropical'] },
-  { key: 'habanero', tokens: ['habanero', 'spicy'], labels: ['spicy'] },
-  { key: 'pineapple', tokens: ['pineapple', 'tropical'], labels: ['pineapple', 'tropical'] },
-  { key: 'grapes', tokens: ['grapes', 'candy grapes'], labels: ['grapes'] },
-  { key: 'shirt', tokens: ['shirt', 'tee', 't-shirt'], labels: ['shirt', 'tee'] },
-  { key: 'hoodie', tokens: ['hoodie'], labels: ['hoodie'] },
-  { key: 'hat', tokens: ['hat', 'cap'], labels: ['hat', 'cap'] },
-  { key: 'tumbler', tokens: ['tumbler', 'cup', 'drinkware'], labels: ['tumbler'] },
-  { key: 'sticker', tokens: ['sticker'], labels: ['sticker'] },
-  { key: 'apron', tokens: ['apron'], labels: ['apron'] },
-  { key: 'tote', tokens: ['tote', 'bag'], labels: ['tote'] },
+export type HelperReply = {
+  reply: string;
+  recommendations: HelperRecommendation[];
+  topic: 'flavor' | 'merch' | 'rewards' | 'referral' | 'custom' | 'logistics' | 'general';
+  disclaimer?: string;
+};
+
+const FLAVOR_KEYWORDS = [
+  'sweet', 'sour', 'spicy', 'tangy', 'tart', 'fruity', 'tropical', 'creamy', 'chewy',
+  'strawberry', 'cherry', 'apple', 'grape', 'grapes', 'raspberry', 'blue raspberry',
+  'lemon', 'lemonade', 'lime', 'orange', 'mango', 'pineapple', 'watermelon',
+  'peach', 'banana', 'kiwi', 'coconut', 'berry', 'mixed', 'rainbow',
+  'pink', 'blue', 'red', 'green', 'purple', 'yellow',
+  'habanero', 'chamoy', 'tajin', 'chili',
 ];
 
-export function buildHelperResponse(input: string, products: Product[], merch: MerchItem[], settings: Settings): HelperReply {
-  const text = input.toLowerCase();
-  const recommendations: HelperReply['recommendations'] = [];
-  const productMatches = products.filter((p) => p.isVisible && p.isAvailable && !p.isSoldOut);
-  const merchMatches = merch.filter((m) => m.isActive && m.status !== 'out-of-stock');
-  const wantsMerch = /merch|shirt|hoodie|hat|tumbler|sticker|apron|tote/.test(text);
-  const wantsCustom = /custom|tray|party|birthday|gift|holiday/.test(text);
-  const wantsRewards = /points|rewards|referral/.test(text);
-  const wantsDelivery = /delivery|pickup/.test(text);
+const MERCH_KEYWORDS = [
+  'merch', 'shirt', 'tee', 't-shirt', 'tshirt', 'hoodie', 'sweater',
+  'hat', 'cap', 'beanie', 'tumbler', 'cup', 'drinkware', 'mug',
+  'sticker', 'apron', 'tote', 'bag', 'sparkly', 'rhinestone',
+];
 
-  const reasons: string[] = [];
-  if (/sweet|fruity|strawberry|cherry/.test(text)) reasons.push('sweet fruit flavors');
-  if (/sour/.test(text)) reasons.push('sour candy flavors');
-  if (/spicy|habanero/.test(text)) reasons.push('sweet-heat combos');
-  if (/tropical|pineapple|mango/.test(text)) reasons.push('tropical flavors');
-  if (/blue raspberry/.test(text)) reasons.push('blue raspberry');
+const CUSTOM_KEYWORDS = ['custom', 'tray', 'party', 'birthday', 'gift', 'holiday', 'event', 'wedding', 'shower', 'graduation'];
+const REWARDS_KEYWORDS = ['reward', 'rewards', 'points', 'loyalty', 'discount'];
+const REFERRAL_KEYWORDS = ['referral', 'refer', 'friend code', 'invite'];
+const LOGISTICS_KEYWORDS = ['delivery', 'pickup', 'pick up', 'ship', 'shipping', 'when', 'where', 'address'];
 
-  const topProducts = productMatches.filter((p) => reasons.some((r) => `${p.name} ${p.description} ${p.flavorNotes}`.toLowerCase().includes(r))).slice(0, settings.helperMaxRecommendations);
-  const topMerch = merchMatches.filter((m) => keywordMap.some((k) => k.tokens.some((t) => text.includes(t)) && `${m.name} ${m.description} ${m.category}`.toLowerCase().includes(k.key))).slice(0, settings.helperMaxRecommendations);
+function tokenize(input: string): string[] {
+  return input.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
 
-  topProducts.forEach((p) => recommendations.push({ kind: 'product', id: p.id, name: p.name }));
-  if (settings.helperAllowMerchSuggestions && wantsMerch) topMerch.forEach((m) => recommendations.push({ kind: 'merch', id: m.id, name: m.name }));
+function matchScore(haystack: string, terms: string[]): number {
+  const text = haystack.toLowerCase();
+  let score = 0;
+  for (const t of terms) {
+    if (!t) continue;
+    if (text.includes(t)) score += t.includes(' ') ? 3 : 2;
+  }
+  return score;
+}
 
-  let reply = settings.helperGreeting;
-  if (wantsCustom && settings.helperAllowCustomOrderIdeas) reply = 'For a custom order, try a party tray with mixed grapes, pineapple, or a seasonal mix. Tell me your flavor vibe and I’ll narrow it down.';
-  if (wantsRewards && settings.helperAllowRewardsSuggestions) reply = 'Rewards can help you save on future orders. Referral and points options may be available in your account.';
-  if (wantsDelivery) reply += ' If you choose delivery, you can confirm the address before submitting.';
-  if (!recommendations.length) reply = settings.helperFallbackMessage;
-  return { reply, recommendations: recommendations.slice(0, settings.helperMaxRecommendations) };
+export function buildHelperResponse(
+  rawInput: string,
+  products: Product[],
+  merch: MerchItem[],
+  settings: Settings,
+): HelperReply {
+  const input = (rawInput || '').trim();
+  const lower = input.toLowerCase();
+  const tokens = tokenize(lower);
+
+  const wantsMerch = MERCH_KEYWORDS.some(k => lower.includes(k));
+  const wantsCustom = CUSTOM_KEYWORDS.some(k => lower.includes(k));
+  const wantsRewards = REWARDS_KEYWORDS.some(k => lower.includes(k));
+  const wantsReferral = REFERRAL_KEYWORDS.some(k => lower.includes(k));
+  const wantsLogistics = LOGISTICS_KEYWORDS.some(k => lower.includes(k));
+
+  const flavorTerms = FLAVOR_KEYWORDS.filter(k => lower.includes(k));
+  const merchTerms = MERCH_KEYWORDS.filter(k => lower.includes(k));
+
+  const max = Math.max(1, Math.min(6, settings.helperMaxRecommendations || 3));
+  const recommendations: HelperRecommendation[] = [];
+  const disclaimer = settings.helperAllergyDisclaimer || undefined;
+
+  // Default topic decision
+  let topic: HelperReply['topic'] = 'general';
+
+  // FLAVOR / MENU MATCHING (prefer if the user mentioned any flavor token or didn't specifically ask for non-flavor topics)
+  const productPool = products.filter(p => p.isVisible && p.isAvailable && !p.isSoldOut);
+  if (flavorTerms.length || (!wantsMerch && !wantsRewards && !wantsReferral && !wantsCustom && !wantsLogistics && tokens.length > 0)) {
+    const scored = productPool
+      .map(p => {
+        const hay = `${p.name} ${p.shortDescription} ${p.description} ${p.flavorNotes} ${p.colorThemeNotes} ${p.category}`;
+        const score = matchScore(hay, flavorTerms.length ? flavorTerms : tokens);
+        return { p, score };
+      })
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, max);
+    for (const { p } of scored) {
+      recommendations.push({ kind: 'product', id: p.id, name: p.name, slug: p.slug });
+    }
+    if (scored.length) topic = 'flavor';
+  }
+
+  // MERCH MATCHING
+  if (wantsMerch && settings.helperAllowMerchSuggestions) {
+    const merchPool = merch.filter(m => m.isActive && m.status !== 'out-of-stock');
+    const scored = merchPool
+      .map(m => {
+        const hay = `${m.name} ${m.description} ${m.category} ${m.colors?.join(' ') || ''}`;
+        const score = matchScore(hay, merchTerms.length ? merchTerms : tokens);
+        return { m, score };
+      })
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, max);
+    for (const { m } of scored) {
+      if (recommendations.length >= max) break;
+      recommendations.push({ kind: 'merch', id: m.id, name: m.name });
+    }
+    if (scored.length) topic = 'merch';
+  }
+
+  // Build reply text based on topic
+  let reply: string;
+  if (wantsRewards && settings.helperAllowRewardsSuggestions) {
+    topic = 'rewards';
+    reply = settings.enableRewards
+      ? 'You can earn loyalty points on completed orders. Check the Rewards page after you order to see your balance and any tier discounts the shop has set up.'
+      : 'The rewards program is currently turned off. Please check back later.';
+  } else if (wantsReferral && settings.helperAllowReferralSuggestions) {
+    topic = 'referral';
+    reply = settings.enableReferrals
+      ? 'You can use a friend referral code at checkout. Both you and your friend can earn bonus points after the order is completed.'
+      : 'Referrals are currently turned off. Please check back later.';
+  } else if (wantsCustom && settings.helperAllowCustomOrderIdeas) {
+    topic = 'custom';
+    reply = 'For a custom order, think about a party tray with mixed flavors — candy grapes, candy pineapple, and a seasonal touch all work well. Tell me your event vibe (birthday, holiday, theme color) and I can suggest matching items from the menu.';
+  } else if (wantsLogistics) {
+    topic = 'logistics';
+    const parts: string[] = [];
+    if (settings.enablePickup) parts.push('pickup');
+    if (settings.enableDelivery) parts.push('delivery');
+    reply = parts.length
+      ? `We currently support ${parts.join(' and ')}. You can pick your option at checkout. Order timing is confirmed by the shop after you submit.`
+      : 'Ordering options are not available right now. Please check back later.';
+  } else if (recommendations.length) {
+    if (topic === 'merch') {
+      reply = `Here are merch picks that match what you said. They come from the live shop catalog only.`;
+    } else {
+      reply = `Here are menu picks that match what you said. They come from the live menu only.`;
+    }
+  } else if (input.length === 0) {
+    reply = settings.helperGreeting;
+  } else {
+    reply = settings.helperFallbackMessage;
+  }
+
+  return { reply, recommendations: recommendations.slice(0, max), topic, disclaimer };
 }
