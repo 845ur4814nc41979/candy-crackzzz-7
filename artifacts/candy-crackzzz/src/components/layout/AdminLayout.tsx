@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -25,10 +25,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const navItems: NavItem[] = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/products', icon: Package, label: 'Products', ownerOnly: true },
+    { href: '/admin/merch', icon: Shirt, label: 'Merch', ownerOnly: true },
     { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
     { href: '/admin/messages', icon: Mail, label: 'Messages' },
     { href: '/admin/reviews', icon: Star, label: 'Reviews', badge: pendingReviews > 0 ? pendingReviews : undefined, ownerOnly: true },
     { href: '/admin/rewards', icon: Gift, label: 'Rewards', ownerOnly: true },
+    { href: '/admin/campaigns', icon: Zap, label: 'Campaigns', ownerOnly: true },
     { href: '/admin/settings', icon: Settings, label: 'Settings', ownerOnly: true },
     { href: '/admin/branding', icon: Palette, label: 'Branding', ownerOnly: true },
     { href: '/admin/payments', icon: CreditCard, label: 'Payments', ownerOnly: true },

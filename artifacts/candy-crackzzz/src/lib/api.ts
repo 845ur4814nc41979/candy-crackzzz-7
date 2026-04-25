@@ -2,10 +2,12 @@ import type {
   AdminActivityEntry,
   AdminRole,
   AdminUser,
+  MerchItem,
   OrderRequest,
   Product,
   Review,
   RewardProfile,
+  RewardsCampaign,
   Settings,
 } from '../types';
 
@@ -25,6 +27,8 @@ export interface BootstrapResponse {
     settings: Settings;
     reviews: Review[];
     rewardProfiles: RewardProfile[];
+    merch: MerchItem[];
+    campaigns: RewardsCampaign[];
   };
   auth: AuthSnapshot;
 }
@@ -243,4 +247,12 @@ export function apiTestSms(to?: string) {
     '/notifications/test-sms',
     { method: 'POST', body: JSON.stringify({ to }) },
   );
+}
+
+// ----- AI Generate -----
+export function apiGenerateAI(prompt: string, context?: string) {
+  return apiRequest<{ ok: boolean; text: string; message?: string }>('/ai/generate', {
+    method: 'POST',
+    body: JSON.stringify({ prompt, context }),
+  });
 }

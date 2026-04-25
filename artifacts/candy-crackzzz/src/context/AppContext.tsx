@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-import { Product, OrderRequest, Settings, CartItem, Review, RewardProfile } from '../types';
-import { defaultSettings, sampleProducts } from '../lib/defaults';
+import { MerchItem, OrderRequest, Product, RewardsCampaign, Review, RewardProfile, Settings, CartItem } from '../types';
+import { defaultSettings, sampleMerchItems, sampleProducts, sampleCampaigns } from '../lib/defaults';
 import { apiGetBootstrap, apiPersistState } from '../lib/api';
 import { useAuth } from './AuthContext';
 
@@ -17,6 +17,10 @@ interface AppContextType {
   setReviews: React.Dispatch<React.SetStateAction<Review[]>>;
   rewardProfiles: RewardProfile[];
   setRewardProfiles: React.Dispatch<React.SetStateAction<RewardProfile[]>>;
+  merch: MerchItem[];
+  setMerch: React.Dispatch<React.SetStateAction<MerchItem[]>>;
+  campaigns: RewardsCampaign[];
+  setCampaigns: React.Dispatch<React.SetStateAction<RewardsCampaign[]>>;
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
@@ -33,6 +37,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [rewardProfiles, setRewardProfiles] = useState<RewardProfile[]>([]);
+  const [merch, setMerch] = useState<MerchItem[]>(sampleMerchItems);
+  const [campaigns, setCampaigns] = useState<RewardsCampaign[]>(sampleCampaigns);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -56,6 +62,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setSettings({ ...defaultSettings, ...(bootstrap.state.settings ?? {}) });
         setReviews(bootstrap.state.reviews ?? []);
         setRewardProfiles(bootstrap.state.rewardProfiles ?? []);
+        setMerch(bootstrap.state.merch?.length ? bootstrap.state.merch : sampleMerchItems);
+        setCampaigns(bootstrap.state.campaigns?.length ? bootstrap.state.campaigns : sampleCampaigns);
       } catch (error) {
         console.error('Failed to load backend app state.', error);
         if (!isMounted) return;
@@ -64,6 +72,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setSettings(defaultSettings);
         setReviews([]);
         setRewardProfiles([]);
+        setMerch(sampleMerchItems);
+        setCampaigns(sampleCampaigns);
       } finally {
         if (isMounted) {
           setIsLoaded(true);
@@ -107,6 +117,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     void apiPersistState('rewardProfiles', rewardProfiles).catch((error) => console.error('Failed to persist reward profiles.', error));
   }, [rewardProfiles, isLoaded]);
 
+  useEffect(() => {
+    if (!isLoaded || !isAuthLoaded || !isOwner) return;
+    void apiPersistState('merch', merch).catch((error) => console.error('Failed to persist merch.', error));
+  }, [merch, isLoaded, isAuthLoaded, isOwner]);
+
+  useEffect(() => {
+    if (!isLoaded || !isAuthLoaded || !isOwner) return;
+    void apiPersistState('campaigns', campaigns).catch((error) => console.error('Failed to persist campaigns.', error));
+  }, [campaigns, isLoaded, isAuthLoaded, isOwner]);
+
   const addToCart = (item: Omit<CartItem, 'id'>) => {
     setCart(prev => [...prev, { ...item, id: Math.random().toString(36).substring(2, 9) }]);
   };
@@ -132,6 +152,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       cart, setCart,
       reviews, setReviews,
       rewardProfiles, setRewardProfiles,
+      merch, setMerch,
+      campaigns, setCampaigns,
       addToCart, removeFromCart, clearCart, cartTotal,
     }}>
       {children}

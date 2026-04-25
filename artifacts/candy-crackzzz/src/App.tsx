@@ -16,6 +16,7 @@ import SeasonalPage from "@/pages/SeasonalPage";
 import CustomOrdersPage from "@/pages/CustomOrdersPage";
 import ContactPage from "@/pages/ContactPage";
 import RewardsPage from "@/pages/RewardsPagePlus";
+import MerchPage from "@/pages/MerchPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import TermsPage from "@/pages/TermsPage";
 import NotFound from "@/pages/not-found";
@@ -27,6 +28,8 @@ import AdminProductForm from "@/pages/admin/AdminProductForm";
 import AdminOrders from "@/pages/admin/AdminOrdersReferralBadges";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminRewards from "@/pages/admin/AdminRewards";
+import AdminMerch from "@/pages/admin/AdminMerch";
+import AdminCampaigns from "@/pages/admin/AdminCampaigns";
 import AdminBranding from "@/pages/admin/AdminBranding";
 import AdminPayments from "@/pages/admin/AdminPayments";
 import AdminReviews from "@/pages/admin/AdminReviews";
@@ -48,6 +51,7 @@ function Router() {
       <Route path="/custom-orders" component={CustomOrdersPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/rewards" component={RewardsPage} />
+      <Route path="/merch" component={MerchPage} />
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/terms" component={TermsPage} />
 
@@ -74,6 +78,12 @@ function Router() {
       </Route>
       <Route path="/admin/rewards">
         {() => <ProtectedRoute allowedRoles={['owner']}><AdminRewards /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/merch">
+        {() => <ProtectedRoute allowedRoles={['owner']}><AdminMerch /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/campaigns">
+        {() => <ProtectedRoute allowedRoles={['owner']}><AdminCampaigns /></ProtectedRoute>}
       </Route>
       <Route path="/admin/branding">
         {() => <ProtectedRoute allowedRoles={['owner']}><AdminBranding /></ProtectedRoute>}

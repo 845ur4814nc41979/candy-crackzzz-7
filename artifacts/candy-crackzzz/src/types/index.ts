@@ -31,6 +31,9 @@ export interface CartItem {
   specialInstructions?: string;
   eventType?: string;
   colorThemeNotes?: string;
+  itemType?: 'candy' | 'merch';
+  selectedSize?: string;
+  selectedColor?: string;
 }
 
 export interface OrderItem {
@@ -38,6 +41,9 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number | null;
+  itemType?: 'candy' | 'merch';
+  selectedSize?: string;
+  selectedColor?: string;
 }
 
 export interface OrderRequest {
@@ -137,10 +143,15 @@ export interface RewardProfile {
   phone: string;
   email?: string;
   birthdayMonth?: string;
+  birthdayDay?: string;
+  emailOptIn?: boolean;
+  smsOptIn?: boolean;
+  tags?: string[];
   currentPoints: number;
   lifetimePointsEarned: number;
   lifetimePointsRedeemed: number;
   totalOrders: number;
+  lifetimeSpend?: number;
   lastOrderDate?: string;
   smsMarketingOptIn: boolean;
   referralCode?: string;
@@ -149,6 +160,74 @@ export interface RewardProfile {
   lifetimeReferralPointsEarned?: number;
   rewardsHistory: RewardsHistoryEntry[];
 }
+
+// ----------- Merch -----------
+
+export type MerchStatus = 'available' | 'coming-soon' | 'out-of-stock' | 'limited';
+export type MerchCategory = 'apparel' | 'accessories' | 'drinkware' | 'stickers' | 'home' | 'vendor' | 'other';
+
+export interface MerchItem {
+  id: string;
+  name: string;
+  description: string;
+  category: MerchCategory;
+  price: number | null;
+  salePrice: number | null;
+  imageUrl: string;
+  status: MerchStatus;
+  inventory: number;
+  showInventory: boolean;
+  isFeatured: boolean;
+  isActive: boolean;
+  allowPoints: boolean;
+  allowFullPointsPurchase: boolean;
+  pointsRequired: number;
+  maxPointsAllowed: number;
+  minPointsToRedeem: number;
+  sizes: string[];
+  colors: string[];
+  pickupShippingNote: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+// ----------- Rewards Campaigns -----------
+
+export type CampaignType = 'birthday' | 'holiday' | 'manual' | 'milestone' | 'winback' | 'multiplier';
+export type RewardType = 'dollar-off' | 'percent-off' | 'free-item' | 'bonus-points' | 'points-multiplier' | 'free-merch';
+export type CampaignSendMethod = 'in-app' | 'email' | 'sms' | 'qr-code';
+
+export interface RewardsCampaign {
+  id: string;
+  name: string;
+  type: CampaignType;
+  rewardType: RewardType;
+  rewardValue: number;
+  isActive: boolean;
+  startDate?: string;
+  endDate?: string;
+  expirationDays: number;
+  usageLimit: number;
+  onePerCustomer: boolean;
+  minimumOrderAmount: number;
+  appliesTo: 'all' | 'candy' | 'merch';
+  targetGroups: string[];
+  messageTemplate: string;
+  holidayName?: string;
+  birthdayWindowDaysBefore?: number;
+  birthdayWindowDaysAfter?: number;
+  milestoneOrders?: number;
+  milestoneSpend?: number;
+  winbackDays?: number;
+  multiplierValue?: number;
+  sendMethods: CampaignSendMethod[];
+  showOnHomepage: boolean;
+  showAtCheckout: boolean;
+  showInWallet: boolean;
+  createdAt: string;
+}
+
+// ----------- Settings -----------
 
 export interface Settings {
   businessName: string;
@@ -165,6 +244,7 @@ export interface Settings {
   enableSeasonalSection: boolean;
   enableGallery: boolean;
   enableFeaturedSection: boolean;
+  enableMerch: boolean;
   enablePickup: boolean;
   enableDelivery: boolean;
   deliveryFeeEnabled: boolean;

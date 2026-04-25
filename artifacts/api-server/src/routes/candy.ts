@@ -661,4 +661,54 @@ router.post("/cc/notifications/test-sms", async (req, res) => {
   }
 });
 
+// -------- AI GENERATE --------
+router.post("/cc/ai/generate", async (req, res) => {
+  if (!(await ensureAdmin(req, res))) return;
+  try {
+    const apiKey = process.env["OPENAI_API_KEY"];
+    if (!apiKey) {
+      res.status(503).json({ ok: false, message: "AI writing is not configured. Add an OPENAI_API_KEY secret in the Replit Secrets panel to enable it." });
+      return;
+    }
+
+    const body = (req.body ?? {}) as { prompt?: string; context?: string; type?: string };
+    const prompt = (body.prompt ?? "").trim();
+    if (!prompt) {
+      res.status(400).json({ ok: false, message: "Missing prompt." });
+      return;
+    }
+
+    const systemContext = body.context ?? "You are a helpful copywriting assistant for a candy-coated fruit and treats brand called Candy Crackzzz. Write engaging, on-brand product descriptions with a sweet, bold streetwear-inspired voice. Keep descriptions concise and impactful.";
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemContext },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 300,
+        temperature: 0.8,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      res.status(502).json({ ok: false, message: (err as { error?: { message?: string } }).error?.message ?? "OpenAI request failed." });
+      return;
+    }
+
+    const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+    const text = data.choices?.[0]?.message?.content?.trim() ?? "";
+    res.json({ ok: true, text });
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "AI generation failed." });
+  }
+});
+
 export default router;

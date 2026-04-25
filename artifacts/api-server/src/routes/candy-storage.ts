@@ -35,7 +35,7 @@ export interface SessionRecord {
   startedAt?: string;
 }
 
-export type StateKey = "products" | "orders" | "settings" | "reviews" | "rewardProfiles";
+export type StateKey = "products" | "orders" | "settings" | "reviews" | "rewardProfiles" | "merch" | "campaigns";
 
 export interface PersistedState {
   products: unknown[];
@@ -43,6 +43,8 @@ export interface PersistedState {
   settings: Record<string, unknown>;
   reviews: unknown[];
   rewardProfiles: unknown[];
+  merch: unknown[];
+  campaigns: unknown[];
 }
 
 export interface AuthState {
@@ -82,8 +84,8 @@ export interface NotificationRecord {
   readAt: string | null;
 }
 
-export const STATE_KEYS: StateKey[] = ["products", "orders", "settings", "reviews", "rewardProfiles"];
-export const OWNER_ONLY_STATE_KEYS = new Set<StateKey>(["products", "settings", "reviews"]);
+export const STATE_KEYS: StateKey[] = ["products", "orders", "settings", "reviews", "rewardProfiles", "merch", "campaigns"];
+export const OWNER_ONLY_STATE_KEYS = new Set<StateKey>(["products", "settings", "reviews", "merch", "campaigns"]);
 
 export const DEFAULT_OWNER_USERNAME = normalizeUsername(
   process.env["ADMIN_USERNAME"] ?? process.env["CANDY_CRACKZZZ_DEFAULT_ADMIN_USERNAME"] ?? "owner",
@@ -115,6 +117,7 @@ export const defaultSettings: Record<string, unknown> = {
   enableSeasonalSection: true,
   enableGallery: true,
   enableFeaturedSection: true,
+  enableMerch: true,
   enablePickup: true,
   enableDelivery: true,
   deliveryFeeEnabled: false,
@@ -224,6 +227,21 @@ export const sampleProducts: unknown[] = [
     isAvailable: true, isFeatured: false, isSeasonal: false, isCustomEligible: true, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
 ];
 
+export const sampleMerchItems: unknown[] = [
+  { id: "merch-1", name: "Candy Crackzzz Graffiti Tee", description: "Bold candy-drip graffiti logo on a premium black tee. Soft, structured, and made to turn heads.", category: "apparel", price: 30, salePrice: null, imageUrl: "", status: "available", inventory: 50, showInventory: false, isFeatured: true, isActive: true, allowPoints: true, allowFullPointsPurchase: false, pointsRequired: 300, maxPointsAllowed: 150, minPointsToRedeem: 50, sizes: ["S","M","L","XL","2XL","3XL"], colors: ["Black"], pickupShippingNote: "Available for pickup or local delivery.", sortOrder: 1, createdAt: new Date().toISOString() },
+  { id: "merch-2", name: "Drip Flame Hoodie", description: "Candy-drip flame sleeves with the CC logo on the chest. Heavyweight fleece, streetwear-ready.", category: "apparel", price: 55, salePrice: null, imageUrl: "", status: "available", inventory: 30, showInventory: false, isFeatured: true, isActive: true, allowPoints: true, allowFullPointsPurchase: false, pointsRequired: 550, maxPointsAllowed: 200, minPointsToRedeem: 100, sizes: ["S","M","L","XL","2XL","3XL"], colors: ["Black"], pickupShippingNote: "Available for pickup or local delivery.", sortOrder: 2, createdAt: new Date().toISOString() },
+  { id: "merch-3", name: "CC Drip Trucker Hat", description: "Mesh back, structured front, CC candy-drip logo. One size fits all with an adjustable snapback.", category: "accessories", price: 25, salePrice: null, imageUrl: "", status: "available", inventory: 40, showInventory: false, isFeatured: false, isActive: true, allowPoints: true, allowFullPointsPurchase: true, pointsRequired: 250, maxPointsAllowed: 125, minPointsToRedeem: 50, sizes: ["One Size"], colors: ["Black"], pickupShippingNote: "Available for pickup.", sortOrder: 3, createdAt: new Date().toISOString() },
+  { id: "merch-4", name: "Galaxy Rhinestone Tumbler", description: "Insulated 30oz stainless steel tumbler wrapped in a galaxy rhinestone drip design. Keeps drinks cold for hours.", category: "drinkware", price: 45, salePrice: null, imageUrl: "", status: "available", inventory: 20, showInventory: true, isFeatured: true, isActive: true, allowPoints: true, allowFullPointsPurchase: false, pointsRequired: 450, maxPointsAllowed: 200, minPointsToRedeem: 50, sizes: ["30oz"], colors: ["Galaxy Blue/Pink","Black"], pickupShippingNote: "Fragile — pickup recommended.", sortOrder: 4, createdAt: new Date().toISOString() },
+  { id: "merch-5", name: "Candy Crackzzz Sticker Pack", description: "5-piece vinyl sticker pack featuring the CC logo, graffiti wordmark, and drip designs. Waterproof and bold.", category: "stickers", price: 8, salePrice: null, imageUrl: "", status: "available", inventory: 100, showInventory: false, isFeatured: false, isActive: true, allowPoints: true, allowFullPointsPurchase: true, pointsRequired: 80, maxPointsAllowed: 80, minPointsToRedeem: 30, sizes: [], colors: [], pickupShippingNote: "Ships easily — available pickup or mail.", sortOrder: 5, createdAt: new Date().toISOString() },
+  { id: "merch-6", name: "CC Vendor Apron", description: "Durable black apron with embroidered CC logo. Built for busy vendor days and candy events.", category: "vendor", price: 35, salePrice: null, imageUrl: "", status: "available", inventory: 15, showInventory: false, isFeatured: false, isActive: true, allowPoints: false, allowFullPointsPurchase: false, pointsRequired: 0, maxPointsAllowed: 0, minPointsToRedeem: 0, sizes: ["One Size"], colors: ["Black"], pickupShippingNote: "Available for pickup.", sortOrder: 6, createdAt: new Date().toISOString() },
+  { id: "merch-7", name: "CC Canvas Tote Bag", description: "Heavy-duty canvas tote with the Candy Crackzzz graffiti logo. Use it for market days, pickups, and everything in between.", category: "accessories", price: 20, salePrice: null, imageUrl: "", status: "coming-soon", inventory: 0, showInventory: false, isFeatured: false, isActive: true, allowPoints: true, allowFullPointsPurchase: true, pointsRequired: 200, maxPointsAllowed: 100, minPointsToRedeem: 50, sizes: ["One Size"], colors: ["Black"], pickupShippingNote: "Coming soon — check back!", sortOrder: 7, createdAt: new Date().toISOString() },
+];
+
+export const sampleCampaigns: unknown[] = [
+  { id: "camp-1", name: "Birthday Crack Drop", type: "birthday", rewardType: "bonus-points", rewardValue: 25, isActive: true, expirationDays: 14, usageLimit: 0, onePerCustomer: true, minimumOrderAmount: 0, appliesTo: "all", targetGroups: [], messageTemplate: "Happy Birthday! Here's a sweet reward from Candy Crackzzz. Enjoy {reward} to celebrate your day!", birthdayWindowDaysBefore: 7, birthdayWindowDaysAfter: 7, sendMethods: ["in-app"], showOnHomepage: false, showAtCheckout: false, showInWallet: true, createdAt: new Date().toISOString() },
+  { id: "camp-2", name: "First Order Reward", type: "milestone", rewardType: "bonus-points", rewardValue: 15, isActive: true, expirationDays: 30, usageLimit: 1, onePerCustomer: true, minimumOrderAmount: 0, appliesTo: "all", targetGroups: [], messageTemplate: "Welcome to Candy Crackzzz! You earned {reward} bonus points on your first order. Sweet!", milestoneOrders: 1, sendMethods: ["in-app"], showOnHomepage: false, showAtCheckout: false, showInWallet: true, createdAt: new Date().toISOString() },
+];
+
 export function createId(prefix: string) {
   return `${prefix}_${crypto.randomUUID()}`;
 }
@@ -268,6 +286,8 @@ function freshDefaultDb(): PersistedDb {
       settings: defaultSettings,
       reviews: [],
       rewardProfiles: [],
+      merch: sampleMerchItems,
+      campaigns: sampleCampaigns,
     },
     auth: {
       users: [createDefaultOwner()],
@@ -295,6 +315,8 @@ function mergeWithDefaults(parsed: Partial<PersistedDb>): PersistedDb {
       rewardProfiles: Array.isArray(parsed.state?.rewardProfiles)
         ? parsed.state!.rewardProfiles
         : [],
+      merch: Array.isArray(parsed.state?.merch) ? parsed.state!.merch : defaults.state.merch,
+      campaigns: Array.isArray(parsed.state?.campaigns) ? parsed.state!.campaigns : defaults.state.campaigns,
     },
     auth: {
       users: Array.isArray(parsed.auth?.users) && parsed.auth!.users.length > 0

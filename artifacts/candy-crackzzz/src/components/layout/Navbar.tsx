@@ -16,6 +16,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/menu', label: 'Menu' },
+    ...(settings.enableMerch ? [{ href: '/merch', label: 'Merch' }] : []),
     ...(settings.enableRewards ? [{ href: '/rewards', label: 'Rewards' }] : []),
     ...(settings.enableSeasonalSection ? [{ href: '/seasonal', label: 'Seasonal' }] : []),
     ...(settings.enableCustomOrders ? [{ href: '/custom-orders', label: 'Custom Orders' }] : []),
