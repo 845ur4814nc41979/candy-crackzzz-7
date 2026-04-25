@@ -233,6 +233,7 @@ export interface Settings {
   businessName: string;
   businessPhone: string;
   businessEmail: string;
+  businessAddress: string;
   orderDestinationEmail: string;
   orderNotificationPhone: string;
   contactDestinationEmail: string;
@@ -247,6 +248,9 @@ export interface Settings {
   enableMerch: boolean;
   enablePickup: boolean;
   enableDelivery: boolean;
+  directionsEnabled: boolean;
+  deliveryDirectionsButtonEnabled: boolean;
+  deliveryDirectionsNote: string;
   deliveryFeeEnabled: boolean;
   deliveryFeeAmount: number;
   minimumOrder: number;
@@ -311,4 +315,18 @@ export interface Settings {
   paymentInstructions: string;
   logoBase64: string;
   showLogo: boolean;
+  helperEnabled: boolean;
+  helperShowFloating: boolean;
+  helperShowOnHome: boolean;
+  helperShowOnMenu: boolean;
+  helperShowOnMerch: boolean;
+  helperShowOnCart: boolean;
+  helperAllowMerchSuggestions: boolean;
+  helperAllowRewardsSuggestions: boolean;
+  helperAllowReferralSuggestions: boolean;
+  helperAllowCustomOrderIdeas: boolean;
+  helperGreeting: string;
+  helperMaxRecommendations: number;
+  helperAllergyDisclaimer: string;
+  helperFallbackMessage: string;
 }

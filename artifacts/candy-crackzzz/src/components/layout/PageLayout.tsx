@@ -4,6 +4,7 @@ import Footer from './Footer';
 import MobileNav from './MobileNav';
 import AddToHomeScreenPrompt from './AddToHomeScreenPrompt';
 import { motion } from 'framer-motion';
+import LocalCandyHelper from '@/components/customer/LocalCandyHelper';
 
 export default function PageLayout({ children, className = "" }: { children: ReactNode, className?: string }) {
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function PageLayout({ children, className = "" }: { children: Rea
         {children}
       </motion.main>
       <AddToHomeScreenPrompt />
+      <LocalCandyHelper />
       <Footer />
       <MobileNav />
     </div>
