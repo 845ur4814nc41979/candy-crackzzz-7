@@ -278,6 +278,7 @@ export default function CartPage() {
                     <div><h3 className="text-lg font-black uppercase tracking-wider mb-1">Rewards</h3><p className="text-sm text-muted-foreground">Use your phone number to track points for future discounts.</p></div>
                     <label className="flex items-start gap-3 text-sm font-medium cursor-pointer"><input type="checkbox" checked={formData.rewardsOptIn} onChange={e => setFormData(prev => ({ ...prev, rewardsOptIn: e.target.checked }))} className="mt-1 h-4 w-4" /><span>Join rewards and track points with this phone number.</span></label>
                     <label className="flex items-start gap-3 text-sm font-medium cursor-pointer"><input type="checkbox" checked={formData.smsMarketingOptIn} onChange={e => setFormData(prev => ({ ...prev, smsMarketingOptIn: e.target.checked }))} className="mt-1 h-4 w-4" /><span>Text me later about upcoming promotions and rewards offers.</span></label>
+                    <p className="text-xs text-muted-foreground leading-6">See our <a href="/privacy" className="text-primary font-bold hover:underline">Privacy Policy</a> and <a href="/terms" className="text-primary font-bold hover:underline">Terms &amp; Conditions</a>.</p>
                     {settings.enableReferrals && (
                       <div className="space-y-2">
                         <Label className="font-bold">Referral Code</Label>

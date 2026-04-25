@@ -16,6 +16,8 @@ import SeasonalPage from "@/pages/SeasonalPage";
 import CustomOrdersPage from "@/pages/CustomOrdersPage";
 import ContactPage from "@/pages/ContactPage";
 import RewardsPage from "@/pages/RewardsPagePlus";
+import PrivacyPage from "@/pages/PrivacyPage";
+import TermsPage from "@/pages/TermsPage";
 import NotFound from "@/pages/not-found";
 
 import AdminLogin from "@/pages/admin/AdminLogin";
@@ -45,6 +47,8 @@ function Router() {
       <Route path="/custom-orders" component={CustomOrdersPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/rewards" component={RewardsPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/terms" component={TermsPage} />
 
       <Route path="/admin/setup">{() => <Redirect to="/admin/login" />}</Route>
       <Route path="/admin/login" component={AdminLogin} />
