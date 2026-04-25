@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Gift, LogOut, Search, Trophy, Users, Copy } from 'lucide-react';
 import { ensureRewardProfileReferralCode, normalizePhone } from '@/lib/rewards';
 import { useToast } from '@/hooks/use-toast';
+import ReferralShareButton from '@/components/referrals/ReferralShareButton';
 
 const STORAGE_KEY = 'cc_rewards_lookup_phone';
 
@@ -183,7 +184,7 @@ export default function RewardsPage() {
                     <div><span className="font-black">Name:</span> {matchedProfile.customerName}</div>
                     <div><span className="font-black">Phone:</span> {matchedProfile.phone}</div>
                     {matchedProfile.email && <div><span className="font-black">Email:</span> {matchedProfile.email}</div>}
-                    <div><span className="font-black">Referral Code:</span> <span className="text-primary font-black tracking-wider">{currentReferralCode}</span></div>
+                    <div className="flex items-center gap-2 flex-wrap"><span className="font-black">Referral Code:</span> <span className="text-primary font-black tracking-wider">{currentReferralCode}</span><ReferralShareButton code={currentReferralCode} size="sm" variant="ghost" iconOnly label="Share referral code" /></div>
                     {matchedProfile.referredByCode && <div><span className="font-black">Referred By:</span> {matchedProfile.referredByCode}</div>}
                     <div><span className="font-black">Total Completed Orders:</span> {matchedProfile.totalOrders}</div>
                     {matchedProfile.lastOrderDate && <div><span className="font-black">Last Order:</span> {new Date(matchedProfile.lastOrderDate).toLocaleString()}</div>}
@@ -207,9 +208,7 @@ export default function RewardsPage() {
                       <div className="text-2xl font-black tracking-[0.15em] text-primary">{currentReferralCode}</div>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      <Button type="button" onClick={() => void triggerNativeShare()} className="font-black uppercase tracking-wider">
-                        Share Referral
-                      </Button>
+                      <ReferralShareButton code={currentReferralCode} variant="default" className="font-black uppercase tracking-wider" label="Share Referral" />
                       <Button type="button" variant="outline" onClick={() => void copyText(currentReferralCode, 'code')} className="font-black uppercase tracking-wider">
                         <Copy className="w-4 h-4 mr-2" /> {copiedState === 'code' ? 'Copied' : 'Copy Code'}
                       </Button>

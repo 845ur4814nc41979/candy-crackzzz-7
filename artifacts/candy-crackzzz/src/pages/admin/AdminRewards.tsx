@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Award, CheckCircle2, Gift, RotateCcw, Search, Users } from 'lucide-react';
 import { calculateEstimatedPoints, ensureRewardProfileReferralCode, normalizePhone } from '@/lib/rewards';
 import type { RewardProfile, RewardsEntryType, Settings } from '@/types';
+import ReferralShareButton from '@/components/referrals/ReferralShareButton';
 
 function updateEntryTypeLabel(type: RewardsEntryType) {
   return type === 'earned' ? 'Earned' : type === 'redeemed' ? 'Redeemed' : type === 'adjusted' ? 'Adjusted' : 'Bonus';
@@ -149,7 +150,7 @@ export default function AdminRewards() {
                   <div className="font-black text-lg">{selectedProfile.customerName}</div>
                   <div className="text-sm text-muted-foreground">{selectedProfile.phone}</div>
                   <div className="text-sm">Current: <span className="font-black">{selectedProfile.currentPoints}</span></div>
-                  <div className="text-sm">Referral code: <span className="font-black">{ensureRewardProfileReferralCode(selectedProfile)}</span></div>
+                  <div className="text-sm flex items-center gap-2 flex-wrap">Referral code: <span className="font-black">{ensureRewardProfileReferralCode(selectedProfile)}</span><ReferralShareButton code={ensureRewardProfileReferralCode(selectedProfile)} size="sm" variant="ghost" iconOnly label="Share referral code" /></div>
                 </div>
                 <div className="space-y-3 border rounded-2xl p-4">
                   <div className="grid grid-cols-2 gap-3">

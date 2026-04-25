@@ -68,6 +68,10 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - `/admin/payments` — Full payment method toggles (Cash App, Venmo, Zelle, QR Code, Manual Invoice, Cash at Pickup, Square placeholder)
 - `/admin/account` — Change admin password (account changes require env updates)
 
+### Referral Sharing
+- `src/lib/referralShare.ts` builds the share message from `settings.businessName`, `referralReferrerBonusPoints`, and `referralReferredCustomerBonusPoints`. Provides Web Share API + clipboard helpers and SMS / mailto fallback URL builders.
+- `src/components/referrals/ReferralShareButton.tsx` is the reusable share button. It hides itself when `settings.enableReferrals` is false or when no code is provided. Uses `navigator.share` when available and falls back to a dropdown with Copy code, Copy message, SMS, and Email options. Wired into `RewardsPage`, `RewardsPagePlus`, `CartPage` (customer's own code), and `AdminRewards` (selected profile only — no other customer data is shared).
+
 ### Notification Bell
 - Bell icon in admin top bar polls `/api/cc/notifications` every 30s.
 - Shows unread count, lists recent notifications, supports mark-all-read, mark single read/unread, delete, and click-through to `/admin/messages` or `/admin/orders`.

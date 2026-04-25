@@ -13,6 +13,7 @@ import { OrderRequest } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateEstimatedPoints, ensureRewardProfileReferralCode, generateReferralCode, normalizePhone, normalizeReferralCode } from '@/lib/rewards';
 import { apiNotifyOrder } from '@/lib/api';
+import ReferralShareButton from '@/components/referrals/ReferralShareButton';
 
 export default function CartPage() {
   const [, setLocation] = useLocation();
@@ -314,7 +315,10 @@ export default function CartPage() {
                     {myReferralCode && (
                       <div className="bg-muted/30 rounded-xl p-3 text-sm">
                         <p className="font-bold">Your referral code</p>
-                        <p className="text-primary font-black tracking-wider mt-1">{myReferralCode}</p>
+                        <div className="flex items-center justify-between gap-2 mt-1 flex-wrap">
+                          <p className="text-primary font-black tracking-wider">{myReferralCode}</p>
+                          <ReferralShareButton code={myReferralCode} size="sm" variant="outline" label="Share" />
+                        </div>
                       </div>
                     )}
                     {matchedRewardProfile && nextRewardTier && <p className="text-xs font-bold text-primary">{Math.max(0, nextRewardTier.points - matchedRewardProfile.currentPoints)} more points until your next reward.</p>}
