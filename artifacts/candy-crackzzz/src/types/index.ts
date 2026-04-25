@@ -329,4 +329,16 @@ export interface Settings {
   helperMaxRecommendations: number;
   helperAllergyDisclaimer: string;
   helperFallbackMessage: string;
+  notificationSoundsEnabled: boolean;
+  notificationSoundVolume: number;
+  orderSoundEnabled: boolean;
+  messageSoundEnabled: boolean;
+  generalSoundEnabled: boolean;
+  notificationPollingEnabled: boolean;
+  notificationPollingSeconds: number;
+  notificationBellEnabled: boolean;
+  analyticsEnabled: boolean;
+  analyticsExcludeAdminRoutes: boolean;
+  analyticsRetentionLimit: number;
+  analyticsShowDashboardCard: boolean;
 }

@@ -35,6 +35,7 @@ import AdminPayments from "@/pages/admin/AdminPayments";
 import AdminReviews from "@/pages/admin/AdminReviews";
 import AdminAccount from "@/pages/admin/AdminAccount";
 import AdminMessages from "@/pages/admin/AdminMessages";
+import PageViewTracker from "@/components/analytics/PageViewTracker";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ function App() {
         <AppProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <PageViewTracker />
               <Router />
             </WouterRouter>
             <Toaster />

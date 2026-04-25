@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { db, ccStateTable, ccMessagesTable, ccNotificationsTable } from "@workspace/db";
-import { eq, desc, sql, lt } from "drizzle-orm";
+import { db, ccStateTable, ccMessagesTable, ccNotificationsTable, ccAnalyticsViewsTable } from "@workspace/db";
+import { eq, desc, sql, lt, gte, count } from "drizzle-orm";
 
 export type AdminRole = "owner" | "employee";
 export type AdminUserStatus = "active" | "disabled";
@@ -700,4 +700,267 @@ export async function pruneOldNotifications(maxAgeDays = 90): Promise<void> {
   if (!HAS_DATABASE) return;
   const cutoff = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
   await db.delete(ccNotificationsTable).where(lt(ccNotificationsTable.createdAt, cutoff));
+}
+
+// ---------- Analytics ----------
+export interface AnalyticsView {
+  id: string;
+  path: string;
+  title: string;
+  referrer: string;
+  visitorId: string;
+  sessionId: string;
+  deviceType: string;
+  userAgent: string;
+  createdAt: string;
+}
+
+const fileAnalytics: AnalyticsView[] = [];
+
+function rowToAnalytics(row: typeof ccAnalyticsViewsTable.$inferSelect): AnalyticsView {
+  return {
+    id: row.id,
+    path: row.path,
+    title: row.title ?? "",
+    referrer: row.referrer ?? "",
+    visitorId: row.visitorId ?? "",
+    sessionId: row.sessionId ?? "",
+    deviceType: row.deviceType ?? "",
+    userAgent: row.userAgent ?? "",
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+const recentDedupe = new Map<string, number>();
+const DEDUPE_WINDOW_MS = 30_000;
+
+export function shouldRecordView(visitorId: string, path: string): boolean {
+  const key = `${visitorId}|${path}`;
+  const now = Date.now();
+  const last = recentDedupe.get(key);
+  if (last && now - last < DEDUPE_WINDOW_MS) return false;
+  recentDedupe.set(key, now);
+  if (recentDedupe.size > 5000) {
+    for (const [k, t] of recentDedupe) {
+      if (now - t > DEDUPE_WINDOW_MS) recentDedupe.delete(k);
+    }
+  }
+  return true;
+}
+
+export async function recordAnalyticsView(input: {
+  path: string;
+  title?: string;
+  referrer?: string;
+  visitorId?: string;
+  sessionId?: string;
+  deviceType?: string;
+  userAgent?: string;
+  retentionLimit?: number;
+}): Promise<AnalyticsView> {
+  const limit = Math.max(100, Math.min(50_000, input.retentionLimit ?? 5000));
+  if (!HAS_DATABASE) {
+    const record: AnalyticsView = {
+      id: crypto.randomUUID(),
+      path: input.path,
+      title: input.title ?? "",
+      referrer: input.referrer ?? "",
+      visitorId: input.visitorId ?? "",
+      sessionId: input.sessionId ?? "",
+      deviceType: input.deviceType ?? "",
+      userAgent: input.userAgent ?? "",
+      createdAt: new Date().toISOString(),
+    };
+    fileAnalytics.unshift(record);
+    if (fileAnalytics.length > limit) fileAnalytics.length = limit;
+    return record;
+  }
+  const [row] = await db
+    .insert(ccAnalyticsViewsTable)
+    .values({
+      path: input.path,
+      title: input.title ?? "",
+      referrer: input.referrer ?? "",
+      visitorId: input.visitorId ?? "",
+      sessionId: input.sessionId ?? "",
+      deviceType: input.deviceType ?? "",
+      userAgent: (input.userAgent ?? "").slice(0, 500),
+    })
+    .returning();
+  return rowToAnalytics(row);
+}
+
+export async function listRecentAnalyticsViews(limit = 50): Promise<AnalyticsView[]> {
+  if (!HAS_DATABASE) {
+    return fileAnalytics.slice(0, limit);
+  }
+  const rows = await db
+    .select()
+    .from(ccAnalyticsViewsTable)
+    .orderBy(desc(ccAnalyticsViewsTable.createdAt))
+    .limit(limit);
+  return rows.map(rowToAnalytics);
+}
+
+export interface AnalyticsSummary {
+  totalViews: number;
+  uniqueVisitors: number;
+  viewsToday: number;
+  viewsThisWeek: number;
+  viewsThisMonth: number;
+  topPages: Array<{ path: string; views: number }>;
+  recentViews: AnalyticsView[];
+  deviceBreakdown: Array<{ device: string; views: number }>;
+  referrerBreakdown: Array<{ referrer: string; views: number }>;
+}
+
+function startOfDay(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function startOfWeek(d = new Date()) {
+  const x = startOfDay(d);
+  x.setDate(x.getDate() - x.getDay());
+  return x;
+}
+function startOfMonth(d = new Date()) {
+  const x = startOfDay(d);
+  x.setDate(1);
+  return x;
+}
+
+export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  const today = startOfDay();
+  const week = startOfWeek();
+  const month = startOfMonth();
+
+  if (!HAS_DATABASE) {
+    const all = fileAnalytics;
+    const totalViews = all.length;
+    const uniqueVisitors = new Set(all.map((v) => v.visitorId).filter(Boolean)).size;
+    const viewsToday = all.filter((v) => new Date(v.createdAt) >= today).length;
+    const viewsThisWeek = all.filter((v) => new Date(v.createdAt) >= week).length;
+    const viewsThisMonth = all.filter((v) => new Date(v.createdAt) >= month).length;
+
+    const pageMap = new Map<string, number>();
+    const deviceMap = new Map<string, number>();
+    const refMap = new Map<string, number>();
+    for (const v of all) {
+      pageMap.set(v.path, (pageMap.get(v.path) ?? 0) + 1);
+      const dev = v.deviceType || "unknown";
+      deviceMap.set(dev, (deviceMap.get(dev) ?? 0) + 1);
+      if (v.referrer) refMap.set(v.referrer, (refMap.get(v.referrer) ?? 0) + 1);
+    }
+    const topPages = [...pageMap.entries()]
+      .map(([path, views]) => ({ path, views }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10);
+    const deviceBreakdown = [...deviceMap.entries()]
+      .map(([device, views]) => ({ device, views }))
+      .sort((a, b) => b.views - a.views);
+    const referrerBreakdown = [...refMap.entries()]
+      .map(([referrer, views]) => ({ referrer, views }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10);
+    return {
+      totalViews,
+      uniqueVisitors,
+      viewsToday,
+      viewsThisWeek,
+      viewsThisMonth,
+      topPages,
+      recentViews: all.slice(0, 20),
+      deviceBreakdown,
+      referrerBreakdown,
+    };
+  }
+
+  const [{ value: totalViews }] = await db
+    .select({ value: count() })
+    .from(ccAnalyticsViewsTable);
+  const uniqueRows = await db
+    .selectDistinct({ visitorId: ccAnalyticsViewsTable.visitorId })
+    .from(ccAnalyticsViewsTable)
+    .where(sql`${ccAnalyticsViewsTable.visitorId} <> ''`);
+  const uniqueVisitors = uniqueRows.length;
+
+  const [{ value: viewsToday }] = await db
+    .select({ value: count() })
+    .from(ccAnalyticsViewsTable)
+    .where(gte(ccAnalyticsViewsTable.createdAt, today));
+  const [{ value: viewsThisWeek }] = await db
+    .select({ value: count() })
+    .from(ccAnalyticsViewsTable)
+    .where(gte(ccAnalyticsViewsTable.createdAt, week));
+  const [{ value: viewsThisMonth }] = await db
+    .select({ value: count() })
+    .from(ccAnalyticsViewsTable)
+    .where(gte(ccAnalyticsViewsTable.createdAt, month));
+
+  const topPagesRows = await db
+    .select({ path: ccAnalyticsViewsTable.path, views: count() })
+    .from(ccAnalyticsViewsTable)
+    .groupBy(ccAnalyticsViewsTable.path)
+    .orderBy(desc(count()))
+    .limit(10);
+  const deviceRows = await db
+    .select({ device: ccAnalyticsViewsTable.deviceType, views: count() })
+    .from(ccAnalyticsViewsTable)
+    .groupBy(ccAnalyticsViewsTable.deviceType)
+    .orderBy(desc(count()));
+  const refRows = await db
+    .select({ referrer: ccAnalyticsViewsTable.referrer, views: count() })
+    .from(ccAnalyticsViewsTable)
+    .where(sql`${ccAnalyticsViewsTable.referrer} <> ''`)
+    .groupBy(ccAnalyticsViewsTable.referrer)
+    .orderBy(desc(count()))
+    .limit(10);
+
+  const recentRows = await db
+    .select()
+    .from(ccAnalyticsViewsTable)
+    .orderBy(desc(ccAnalyticsViewsTable.createdAt))
+    .limit(20);
+
+  return {
+    totalViews: Number(totalViews ?? 0),
+    uniqueVisitors,
+    viewsToday: Number(viewsToday ?? 0),
+    viewsThisWeek: Number(viewsThisWeek ?? 0),
+    viewsThisMonth: Number(viewsThisMonth ?? 0),
+    topPages: topPagesRows.map((r) => ({ path: r.path, views: Number(r.views) })),
+    deviceBreakdown: deviceRows.map((r) => ({
+      device: (r.device || "unknown") as string,
+      views: Number(r.views),
+    })),
+    referrerBreakdown: refRows.map((r) => ({
+      referrer: (r.referrer || "") as string,
+      views: Number(r.views),
+    })),
+    recentViews: recentRows.map(rowToAnalytics),
+  };
+}
+
+export async function pruneAnalytics(retentionLimit: number): Promise<void> {
+  const limit = Math.max(100, Math.min(50_000, retentionLimit));
+  if (!HAS_DATABASE) {
+    if (fileAnalytics.length > limit) fileAnalytics.length = limit;
+    return;
+  }
+  const [{ value: total }] = await db
+    .select({ value: count() })
+    .from(ccAnalyticsViewsTable);
+  const totalNum = Number(total ?? 0);
+  if (totalNum <= limit) return;
+  const rows = await db
+    .select({ id: ccAnalyticsViewsTable.id, createdAt: ccAnalyticsViewsTable.createdAt })
+    .from(ccAnalyticsViewsTable)
+    .orderBy(desc(ccAnalyticsViewsTable.createdAt))
+    .limit(limit)
+    .offset(limit - 1);
+  const cutoff = rows[rows.length - 1]?.createdAt;
+  if (cutoff) {
+    await db.delete(ccAnalyticsViewsTable).where(lt(ccAnalyticsViewsTable.createdAt, cutoff));
+  }
 }

@@ -249,6 +249,56 @@ export function apiTestSms(to?: string) {
   );
 }
 
+// ----- Analytics -----
+export interface AnalyticsViewRecord {
+  id: string;
+  path: string;
+  title: string;
+  referrer: string;
+  visitorId: string;
+  sessionId: string;
+  deviceType: string;
+  userAgent: string;
+  createdAt: string;
+}
+
+export interface AnalyticsSummary {
+  totalViews: number;
+  uniqueVisitors: number;
+  viewsToday: number;
+  viewsThisWeek: number;
+  viewsThisMonth: number;
+  topPages: Array<{ path: string; views: number }>;
+  recentViews: AnalyticsViewRecord[];
+  deviceBreakdown: Array<{ device: string; views: number }>;
+  referrerBreakdown: Array<{ referrer: string; views: number }>;
+}
+
+export function apiTrackPageView(payload: {
+  path: string;
+  title?: string;
+  referrer?: string;
+  visitorId?: string;
+  sessionId?: string;
+  deviceType?: string;
+  retentionLimit?: number;
+}) {
+  return apiRequest<{ ok: boolean; skipped?: boolean }>('/analytics/view', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function apiGetAnalyticsSummary() {
+  return apiRequest<AnalyticsSummary>('/analytics/summary', { method: 'GET' });
+}
+
+export function apiGetRecentAnalyticsViews(limit = 50) {
+  return apiRequest<{ recentViews: AnalyticsViewRecord[] }>(`/analytics/recent?limit=${limit}`, {
+    method: 'GET',
+  });
+}
+
 // NOTE: Product/merch description generation is now 100% local (see
 // src/lib/smartDescription.ts and src/components/admin/SmartDescriptionButton.tsx).
 // The previous apiGenerateAI() helper that called /api/cc/ai/generate has

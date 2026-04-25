@@ -22,6 +22,11 @@ import {
   deleteMessage,
   listNotifications,
   createNotification,
+  recordAnalyticsView,
+  getAnalyticsSummary,
+  listRecentAnalyticsViews,
+  shouldRecordView,
+  pruneAnalytics,
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotification,
@@ -531,6 +536,79 @@ router.delete("/cc/notifications/:id", async (req, res) => {
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ message: error instanceof Error ? error.message : "Delete failed." });
+  }
+});
+
+// -------- ANALYTICS --------
+router.post("/cc/analytics/view", async (req, res) => {
+  try {
+    const body = (req.body ?? {}) as {
+      path?: string;
+      title?: string;
+      referrer?: string;
+      visitorId?: string;
+      sessionId?: string;
+      deviceType?: string;
+      retentionLimit?: number;
+    };
+    const rawPath = (body.path ?? "").trim();
+    if (!rawPath || !rawPath.startsWith("/")) {
+      res.status(400).json({ ok: false, message: "Invalid path." });
+      return;
+    }
+    if (rawPath.startsWith("/admin") || rawPath.startsWith("/api")) {
+      res.status(200).json({ ok: true, skipped: true, reason: "internal route" });
+      return;
+    }
+    const visitorId = (body.visitorId ?? "").slice(0, 80);
+    if (!shouldRecordView(visitorId || (req.ip ?? "anon"), rawPath)) {
+      res.status(200).json({ ok: true, skipped: true, reason: "duplicate within window" });
+      return;
+    }
+    const userAgent = (req.headers["user-agent"] ?? "").toString().slice(0, 500);
+    await recordAnalyticsView({
+      path: rawPath.slice(0, 250),
+      title: (body.title ?? "").slice(0, 250),
+      referrer: (body.referrer ?? "").slice(0, 250),
+      visitorId,
+      sessionId: (body.sessionId ?? "").slice(0, 80),
+      deviceType: (body.deviceType ?? "").slice(0, 20),
+      userAgent,
+      retentionLimit: body.retentionLimit,
+    });
+    if (body.retentionLimit) {
+      void pruneAnalytics(body.retentionLimit).catch(() => undefined);
+    }
+    res.status(201).json({ ok: true });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ ok: false, message: error instanceof Error ? error.message : "Failed." });
+  }
+});
+
+router.get("/cc/analytics/summary", async (req, res) => {
+  if (!(await ensureAdmin(req, res))) return;
+  try {
+    const summary = await getAnalyticsSummary();
+    res.json(summary);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: error instanceof Error ? error.message : "Could not load analytics." });
+  }
+});
+
+router.get("/cc/analytics/recent", async (req, res) => {
+  if (!(await ensureAdmin(req, res))) return;
+  try {
+    const limit = Math.min(200, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
+    const recentViews = await listRecentAnalyticsViews(limit);
+    res.json({ recentViews });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: error instanceof Error ? error.message : "Could not load analytics." });
   }
 });
 

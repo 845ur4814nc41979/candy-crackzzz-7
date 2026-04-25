@@ -31,5 +31,18 @@ export const ccNotificationsTable = pgTable("cc_notifications", {
   readAt: timestamp("read_at", { withTimezone: true }),
 });
 
+export const ccAnalyticsViewsTable = pgTable("cc_analytics_views", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  path: text("path").notNull(),
+  title: text("title").default(""),
+  referrer: text("referrer").default(""),
+  visitorId: text("visitor_id").default(""),
+  sessionId: text("session_id").default(""),
+  deviceType: text("device_type").default(""),
+  userAgent: text("user_agent").default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type CcMessage = typeof ccMessagesTable.$inferSelect;
 export type CcNotification = typeof ccNotificationsTable.$inferSelect;
+export type CcAnalyticsView = typeof ccAnalyticsViewsTable.$inferSelect;

@@ -100,6 +100,18 @@ export const defaultSettings: Settings = {
   helperMaxRecommendations: 3,
   helperAllergyDisclaimer: 'Please confirm ingredients and allergy concerns before ordering.',
   helperFallbackMessage: 'I can help with Candy CrackZZZ flavors, fruit, candy-dipped treats, merch, rewards, pickup, delivery, or custom order ideas.',
+  notificationSoundsEnabled: false,
+  notificationSoundVolume: 0.7,
+  orderSoundEnabled: true,
+  messageSoundEnabled: true,
+  generalSoundEnabled: true,
+  notificationPollingEnabled: true,
+  notificationPollingSeconds: 12,
+  notificationBellEnabled: true,
+  analyticsEnabled: true,
+  analyticsExcludeAdminRoutes: true,
+  analyticsRetentionLimit: 5000,
+  analyticsShowDashboardCard: true,
 };
 
 export const sampleProducts: Product[] = [

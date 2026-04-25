@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import SystemStatusCard from '@/components/admin/SystemStatusCard';
+import SiteAnalyticsCard from '@/components/admin/SiteAnalyticsCard';
 
 export default function AdminDashboard() {
   const { products, orders, settings, rewardProfiles } = useAppContext();
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total, 0);
   const referralOrders = orders.filter(o => !!o.referralCodeUsed).length;
   const referralPoints = rewardProfiles.reduce((sum, p) => sum + (p.lifetimeReferralPointsEarned ?? 0), 0);
+  const showAnalyticsCard = settings.analyticsEnabled !== false && settings.analyticsShowDashboardCard !== false;
 
   return (
     <AdminLayout>
@@ -123,6 +125,7 @@ export default function AdminDashboard() {
 
         <div className="space-y-8">
           <SystemStatusCard />
+          {showAnalyticsCard && <SiteAnalyticsCard />}
           <Card className="border-border">
             <CardHeader className="border-b border-border pb-4">
               <CardTitle className="font-black uppercase tracking-wider text-lg">Store Status</CardTitle>

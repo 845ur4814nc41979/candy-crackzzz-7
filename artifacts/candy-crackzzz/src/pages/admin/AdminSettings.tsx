@@ -8,8 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Mail, Info, MapPin, MessageCircle } from 'lucide-react';
+import { Save, Mail, Info, MapPin, MessageCircle, Bell, BarChart3, Volume2 } from 'lucide-react';
 import { Settings } from '@/types';
+import {
+  playOrderNotificationSound,
+  playMessageNotificationSound,
+  playGeneralNotificationSound,
+  unlockNotificationAudio,
+} from '@/lib/notificationSounds';
 
 type SectionCardProps = {
   title: string;
@@ -61,6 +67,8 @@ export default function AdminSettings() {
           <TabsTrigger value="features" className="font-bold uppercase tracking-wider px-4 py-2.5">Features</TabsTrigger>
           <TabsTrigger value="logistics" className="font-bold uppercase tracking-wider px-4 py-2.5">Logistics</TabsTrigger>
           <TabsTrigger value="helper" className="font-bold uppercase tracking-wider px-4 py-2.5">Helper</TabsTrigger>
+          <TabsTrigger value="notifications" className="font-bold uppercase tracking-wider px-4 py-2.5">Alerts</TabsTrigger>
+          <TabsTrigger value="analytics" className="font-bold uppercase tracking-wider px-4 py-2.5">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="max-w-3xl">
@@ -329,6 +337,175 @@ export default function AdminSettings() {
             <div className="space-y-2 max-w-xs">
               <Label className="font-bold">Max Recommendations Per Reply</Label>
               <Input type="number" min={1} max={6} value={formData.helperMaxRecommendations} onChange={e => set({ helperMaxRecommendations: Math.max(1, parseInt(e.target.value) || 3) })} className="bg-background font-bold h-11" />
+            </div>
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="max-w-3xl">
+          <SectionCard title="Admin Notification Bell" icon={<Bell className="w-4 h-4" />}>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Show notification bell in admin header</Label>
+                <p className="text-sm text-muted-foreground">Master switch for the bell icon and badge.</p>
+              </div>
+              <Switch
+                checked={formData.notificationBellEnabled}
+                onCheckedChange={v => set({ notificationBellEnabled: v })}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Auto-refresh notifications</Label>
+                <p className="text-sm text-muted-foreground">Periodically check for new orders and messages.</p>
+              </div>
+              <Switch
+                checked={formData.notificationPollingEnabled}
+                onCheckedChange={v => set({ notificationPollingEnabled: v })}
+              />
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Label className="font-bold">Refresh interval (seconds)</Label>
+              <Input
+                type="number"
+                min={5}
+                max={120}
+                value={formData.notificationPollingSeconds}
+                onChange={e =>
+                  set({ notificationPollingSeconds: Math.max(5, Math.min(120, parseInt(e.target.value) || 12)) })
+                }
+                className="bg-background font-bold h-11"
+              />
+              <p className="text-xs text-muted-foreground">Recommended: 10-15 seconds. Slows down 4x when the tab is hidden.</p>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Notification Sounds" icon={<Volume2 className="w-4 h-4" />}>
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 -mt-2">
+              <p className="text-sm font-bold text-primary">Sounds use the browser's built-in audio synth.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                No audio files, no third-party services. After enabling sounds, click anywhere in the admin once so the browser allows audio playback (you'll see a one-click "enable sounds" prompt in the bell dropdown the first time).
+              </p>
+            </div>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Enable notification sounds</Label>
+                <p className="text-sm text-muted-foreground">Master switch for all chimes.</p>
+              </div>
+              <Switch
+                checked={formData.notificationSoundsEnabled}
+                onCheckedChange={v => set({ notificationSoundsEnabled: v })}
+              />
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Label className="font-bold">Volume ({Math.round((formData.notificationSoundVolume ?? 0.7) * 100)}%)</Label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={formData.notificationSoundVolume ?? 0.7}
+                onChange={e => set({ notificationSoundVolume: parseFloat(e.target.value) })}
+                className="w-full accent-primary"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-2 pt-2">
+              {[
+                {
+                  key: 'orderSoundEnabled' as const,
+                  label: 'Order chime',
+                  desc: 'Bright two-note (G5 → C6) for new orders.',
+                  preview: () => playOrderNotificationSound(formData.notificationSoundVolume ?? 0.7),
+                },
+                {
+                  key: 'messageSoundEnabled' as const,
+                  label: 'Message chime',
+                  desc: 'Soft double ping for new customer messages.',
+                  preview: () => playMessageNotificationSound(formData.notificationSoundVolume ?? 0.7),
+                },
+                {
+                  key: 'generalSoundEnabled' as const,
+                  label: 'General chime',
+                  desc: 'Short neutral beep for everything else.',
+                  preview: () => playGeneralNotificationSound(formData.notificationSoundVolume ?? 0.7),
+                },
+              ].map(t => (
+                <div key={t.key} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div className="min-w-0 flex-1 pr-3">
+                    <Label className="font-bold">{t.label}</Label>
+                    <p className="text-xs text-muted-foreground">{t.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        unlockNotificationAudio();
+                        t.preview();
+                      }}
+                      className="font-bold uppercase text-xs"
+                    >
+                      Preview
+                    </Button>
+                    <Switch checked={formData[t.key]} onCheckedChange={v => set({ [t.key]: v })} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="max-w-3xl">
+          <SectionCard title="Privacy-Friendly Site Analytics" icon={<BarChart3 className="w-4 h-4" />}>
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 -mt-2">
+              <p className="text-sm font-bold text-primary">No Google Analytics, no third-party trackers.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Visitor IDs are random and stored only in the browser (localStorage). Session IDs live in sessionStorage. Page views are saved to your own database with no IP address and no personal data.
+              </p>
+            </div>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Enable site analytics</Label>
+                <p className="text-sm text-muted-foreground">Track page views from customer pages only.</p>
+              </div>
+              <Switch
+                checked={formData.analyticsEnabled}
+                onCheckedChange={v => set({ analyticsEnabled: v })}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Exclude admin pages</Label>
+                <p className="text-sm text-muted-foreground">Don't count visits to /admin or /api routes.</p>
+              </div>
+              <Switch
+                checked={formData.analyticsExcludeAdminRoutes}
+                onCheckedChange={v => set({ analyticsExcludeAdminRoutes: v })}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 border-b border-border">
+              <div>
+                <Label className="font-bold">Show "Site Views" card on dashboard</Label>
+                <p className="text-sm text-muted-foreground">Toggle the analytics summary card on the admin dashboard.</p>
+              </div>
+              <Switch
+                checked={formData.analyticsShowDashboardCard}
+                onCheckedChange={v => set({ analyticsShowDashboardCard: v })}
+              />
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Label className="font-bold">Retention cap (rows)</Label>
+              <Input
+                type="number"
+                min={100}
+                max={100000}
+                value={formData.analyticsRetentionLimit}
+                onChange={e =>
+                  set({ analyticsRetentionLimit: Math.max(100, Math.min(100000, parseInt(e.target.value) || 5000)) })
+                }
+                className="bg-background font-bold h-11"
+              />
+              <p className="text-xs text-muted-foreground">When the table exceeds this, the oldest rows are pruned automatically.</p>
             </div>
           </SectionCard>
         </TabsContent>

@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import { Bell, Check, Trash2 } from 'lucide-react';
+import { Bell, Check, Trash2, ShoppingCart, Mail, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import {
   apiListNotifications,
   apiSetNotificationRead,
@@ -8,30 +8,105 @@ import {
   apiDeleteNotification,
   type NotificationRecord,
 } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { useAppContext } from '@/context/AppContext';
+import {
+  playOrderNotificationSound,
+  playMessageNotificationSound,
+  playGeneralNotificationSound,
+  unlockNotificationAudio,
+  canPlayNotificationAudio,
+} from '@/lib/notificationSounds';
 
-const POLL_INTERVAL_MS = 30_000;
+function typeMeta(type: string) {
+  if (type === 'order') {
+    return { label: 'Order', Icon: ShoppingCart, className: 'bg-primary/15 text-primary' };
+  }
+  if (type === 'message') {
+    return { label: 'Message', Icon: Mail, className: 'bg-secondary/15 text-secondary' };
+  }
+  return { label: 'General', Icon: Sparkles, className: 'bg-accent/20 text-accent' };
+}
 
 export default function NotificationBell() {
+  const { isLoggedIn } = useAuth();
+  const { settings } = useAppContext();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [unread, setUnread] = useState(0);
+  const [audioReady, setAudioReady] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const seenIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
+
+  const enabled = settings.notificationBellEnabled !== false;
+
+  const playFor = (n: NotificationRecord) => {
+    if (!settings.notificationSoundsEnabled) return;
+    if (!canPlayNotificationAudio()) return;
+    const vol = settings.notificationSoundVolume ?? 0.7;
+    if (n.type === 'order') {
+      if (settings.orderSoundEnabled !== false) playOrderNotificationSound(vol);
+    } else if (n.type === 'message') {
+      if (settings.messageSoundEnabled !== false) playMessageNotificationSound(vol);
+    } else {
+      if (settings.generalSoundEnabled !== false) playGeneralNotificationSound(vol);
+    }
+  };
 
   const load = async () => {
     try {
       const result = await apiListNotifications();
-      setNotifications(result.notifications);
+      const incoming = result.notifications;
+      if (isInitialLoad.current) {
+        for (const n of incoming) seenIds.current.add(n.id);
+        isInitialLoad.current = false;
+      } else {
+        // play sound for newest unseen unread notification only
+        const newOnes = incoming.filter((n) => !seenIds.current.has(n.id));
+        for (const n of newOnes) seenIds.current.add(n.id);
+        const newestUnread = newOnes
+          .filter((n) => !n.readAt)
+          .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
+        if (newestUnread) playFor(newestUnread);
+      }
+      setNotifications(incoming);
       setUnread(result.unread);
     } catch {
       // ignore (user might be logged out)
     }
   };
 
+  // poll
   useEffect(() => {
-    load();
-    const id = setInterval(load, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, []);
+    if (!enabled || !isLoggedIn) return;
+    isInitialLoad.current = true;
+    seenIds.current = new Set();
+    void load();
+    if (settings.notificationPollingEnabled === false) return;
+    const intervalSec = Math.max(5, Math.min(120, settings.notificationPollingSeconds || 12));
+    let timer: number | undefined;
+    const start = () => {
+      const ms = (typeof document !== 'undefined' && document.hidden ? intervalSec * 4 : intervalSec) * 1000;
+      timer = window.setInterval(load, ms);
+    };
+    start();
+    const onVisibility = () => {
+      if (timer) window.clearInterval(timer);
+      start();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      if (timer) window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isLoggedIn, settings.notificationPollingEnabled, settings.notificationPollingSeconds]);
+
+  // audio readiness state
+  useEffect(() => {
+    setAudioReady(canPlayNotificationAudio());
+  }, [settings.notificationSoundsEnabled]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,10 +148,28 @@ export default function NotificationBell() {
   };
 
   const linkFor = (n: NotificationRecord): string | null => {
-    if (n.relatedKind === 'message') return '/admin/messages';
-    if (n.relatedKind === 'order') return '/admin/orders';
+    if (n.relatedKind === 'message' || n.type === 'message') return '/admin/messages';
+    if (n.relatedKind === 'order' || n.type === 'order') return '/admin/orders';
     return null;
   };
+
+  const handleEnableSound = () => {
+    const ok = unlockNotificationAudio();
+    if (ok) setAudioReady(true);
+    // Play a tiny confirmation chime
+    if (ok && settings.notificationSoundsEnabled) {
+      playGeneralNotificationSound(settings.notificationSoundVolume ?? 0.7);
+    }
+  };
+
+  const showSoundUnlock = useMemo(
+    () => settings.notificationSoundsEnabled && !audioReady,
+    [settings.notificationSoundsEnabled, audioReady],
+  );
+
+  if (!enabled || !isLoggedIn) return null;
+
+  const pulse = unread > 0;
 
   return (
     <div ref={containerRef} className="relative">
@@ -84,7 +177,11 @@ export default function NotificationBell() {
         type="button"
         aria-label="Notifications"
         onClick={() => setOpen((v) => !v)}
-        className="relative w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+        className={`relative w-10 h-10 rounded-full bg-card border flex items-center justify-center transition-colors ${
+          pulse
+            ? 'border-primary/60 text-primary shadow-[0_0_18px_rgba(255,0,255,0.55)] animate-pulse'
+            : 'border-border hover:bg-muted/50'
+        }`}
       >
         <Bell className="w-5 h-5" />
         {unread > 0 && (
@@ -98,15 +195,36 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-2 w-[340px] sm:w-[380px] bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="font-black uppercase tracking-wider text-sm">Notifications</div>
-            {unread > 0 && (
-              <button
-                onClick={markAll}
-                className="text-xs font-bold text-primary uppercase tracking-wider hover:underline"
-              >
-                Mark all read
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {audioReady ? (
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                  <Volume2 className="w-3 h-3" /> On
+                </span>
+              ) : settings.notificationSoundsEnabled ? (
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                  <VolumeX className="w-3 h-3" /> Locked
+                </span>
+              ) : null}
+              {unread > 0 && (
+                <button
+                  onClick={markAll}
+                  className="text-xs font-bold text-primary uppercase tracking-wider hover:underline"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
+
+          {showSoundUnlock && (
+            <button
+              onClick={handleEnableSound}
+              className="w-full px-4 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider border-b border-border flex items-center justify-center gap-2"
+            >
+              <Volume2 className="w-3.5 h-3.5" /> Click to enable notification sounds
+            </button>
+          )}
+
           <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
             {notifications.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground font-bold text-sm">
@@ -115,13 +233,22 @@ export default function NotificationBell() {
             ) : (
               notifications.map((n) => {
                 const href = linkFor(n);
+                const meta = typeMeta(n.type);
                 const body = (
                   <div
                     className={`p-3 group ${n.readAt ? 'opacity-70' : 'bg-primary/5'} hover:bg-muted/30 transition-colors`}
                   >
                     <div className="flex items-start gap-2">
-                      <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${n.readAt ? 'bg-muted-foreground/30' : 'bg-primary'}`} />
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${meta.className}`}>
+                        <meta.Icon className="w-4 h-4" />
+                      </div>
                       <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-[10px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded ${meta.className}`}>
+                            {meta.label}
+                          </span>
+                          {!n.readAt && <span className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
                         <div className={`text-sm truncate ${n.readAt ? 'font-bold' : 'font-black'}`}>
                           {n.title}
                         </div>
