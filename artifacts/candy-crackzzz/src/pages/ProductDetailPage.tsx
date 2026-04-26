@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
+import NativeShareButton from '@/components/share/NativeShareButton';
 
 export default function ProductDetailPage() {
   const [, params] = useRoute('/menu/:slug');
@@ -104,9 +105,21 @@ export default function ProductDetailPage() {
               </Badge>
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight leading-none mb-6">
-              {product.name}
-            </h1>
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight leading-none">
+                {product.name}
+              </h1>
+              <NativeShareButton
+                title={product.name}
+                text={`Check out this Candy CrackZZZ item: ${product.name}`}
+                label="Share"
+                variant="outline"
+                size="sm"
+                iconOnly
+                fallbackTitle={`Share ${product.name}`}
+                className="shrink-0 mt-2"
+              />
+            </div>
 
             {settings.showPricesPublicly && (
               <div className="text-3xl md:text-5xl font-black text-primary mb-8 drop-shadow-[0_0_15px_rgba(255,0,255,0.3)]">

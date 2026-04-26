@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Copy, Link as LinkIcon, Mail, MessageSquare, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,14 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useAppContext } from '@/context/AppContext';
-import { Copy, Link as LinkIcon, Mail, MessageSquare, Share2, X } from 'lucide-react';
 import {
-  buildReferralShareMessage,
-  buildReferralShareTitle,
-  getReferralShareUrl,
-} from '@/lib/referralShare';
-import {
+  buildCurrentPageUrl,
   buildEmailShareUrl,
   buildSmsShareUrl,
   canUseNativeShare,
@@ -24,56 +19,42 @@ import {
   copyShareMessage,
   shareNativeOrFallback,
 } from '@/lib/nativeShare';
-import type { Settings } from '@/types';
 
 type ButtonSize = React.ComponentProps<typeof Button>['size'];
 type ButtonVariant = React.ComponentProps<typeof Button>['variant'];
 
-interface ReferralShareButtonProps {
-  code: string;
+export interface NativeShareButtonProps {
+  title: string;
+  text: string;
+  url?: string;
+  label?: string;
+  iconOnly?: boolean;
   size?: ButtonSize;
   variant?: ButtonVariant;
   className?: string;
-  label?: string;
-  iconOnly?: boolean;
+  fallbackTitle?: string;
 }
 
-export default function ReferralShareButton({
-  code,
+export default function NativeShareButton({
+  title,
+  text,
+  url,
+  label = 'Share',
+  iconOnly = false,
   size = 'default',
   variant = 'default',
   className,
-  label = 'Share Referral',
-  iconOnly = false,
-}: ReferralShareButtonProps) {
-  const { settings } = useAppContext();
+  fallbackTitle,
+}: NativeShareButtonProps) {
   const { toast } = useToast();
   const [fallbackOpen, setFallbackOpen] = useState(false);
-  const [pageUrl, setPageUrl] = useState('');
+  const [resolvedUrl, setResolvedUrl] = useState<string>('');
 
   useEffect(() => {
-    setPageUrl(getReferralShareUrl());
-  }, []);
+    setResolvedUrl(url && url.length > 0 ? url : buildCurrentPageUrl());
+  }, [url]);
 
-  const shareSettings = useMemo<Pick<
-    Settings,
-    'enableReferrals' | 'businessName' | 'referralReferrerBonusPoints' | 'referralReferredCustomerBonusPoints'
-  >>(() => ({
-    enableReferrals: settings.enableReferrals,
-    businessName: settings.businessName,
-    referralReferrerBonusPoints: settings.referralReferrerBonusPoints,
-    referralReferredCustomerBonusPoints: settings.referralReferredCustomerBonusPoints,
-  }), [settings]);
-
-  if (!settings.enableReferrals || !code) return null;
-
-  const ctx = { code, settings: shareSettings };
-  const data = {
-    title: buildReferralShareTitle(shareSettings),
-    text: buildReferralShareMessage(ctx),
-    url: pageUrl || undefined,
-  };
-  const sharePreview = data.text;
+  const data = { title, text, url: url && url.length > 0 ? url : resolvedUrl };
 
   const handleClick = async () => {
     if (!canUseNativeShare()) {
@@ -84,15 +65,7 @@ export default function ReferralShareButton({
     if (result === 'unsupported' || result === 'error') {
       setFallbackOpen(true);
     }
-  };
-
-  const handleCopyCode = async () => {
-    const ok = await copyShareLink(code);
-    if (ok) {
-      toast({ title: 'Code copied', description: code });
-    } else {
-      toast({ title: 'Copy failed', description: 'Try copying it manually.', variant: 'destructive' });
-    }
+    // 'shared' or 'cancelled' → do nothing (no toast on cancel per spec)
   };
 
   const handleCopyLink = async () => {
@@ -123,7 +96,7 @@ export default function ReferralShareButton({
         onClick={handleClick}
         aria-label={label}
         title={label}
-        data-testid="referral-share-button"
+        data-testid="native-share-button"
       >
         <Share2 className="w-4 h-4" />
         {!iconOnly && <span className="ml-2">{label}</span>}
@@ -132,7 +105,7 @@ export default function ReferralShareButton({
       <Dialog open={fallbackOpen} onOpenChange={setFallbackOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Share referral code {code}</DialogTitle>
+            <DialogTitle>{fallbackTitle ?? `Share ${title}`}</DialogTitle>
             <DialogDescription>
               Pick how you want to send this. Native sharing isn't available on this device.
             </DialogDescription>
@@ -144,6 +117,7 @@ export default function ReferralShareButton({
               variant="outline"
               className="justify-start font-bold"
               onClick={() => void handleCopyLink()}
+              data-testid="share-fallback-copy-link"
             >
               <LinkIcon className="w-4 h-4 mr-2" /> Copy Link
             </Button>
@@ -152,31 +126,30 @@ export default function ReferralShareButton({
               variant="outline"
               className="justify-start font-bold"
               onClick={() => void handleCopyMessage()}
+              data-testid="share-fallback-copy-message"
             >
               <Copy className="w-4 h-4 mr-2" /> Copy Message
             </Button>
             <Button
-              type="button"
+              asChild
               variant="outline"
               className="justify-start font-bold"
-              onClick={() => void handleCopyCode()}
+              data-testid="share-fallback-sms"
             >
-              <Copy className="w-4 h-4 mr-2" /> Copy Code Only
-            </Button>
-            <Button asChild variant="outline" className="justify-start font-bold">
               <a href={buildSmsShareUrl(data)} onClick={() => setFallbackOpen(false)}>
                 <MessageSquare className="w-4 h-4 mr-2" /> Share by Text Message
               </a>
             </Button>
-            <Button asChild variant="outline" className="justify-start font-bold">
+            <Button
+              asChild
+              variant="outline"
+              className="justify-start font-bold"
+              data-testid="share-fallback-email"
+            >
               <a href={buildEmailShareUrl(data)} onClick={() => setFallbackOpen(false)}>
                 <Mail className="w-4 h-4 mr-2" /> Share by Email
               </a>
             </Button>
-          </div>
-
-          <div className="text-[11px] text-muted-foreground leading-snug border border-border rounded-xl bg-card/50 p-3 mt-2">
-            {sharePreview}
           </div>
 
           <DialogFooter className="pt-2">
@@ -185,6 +158,7 @@ export default function ReferralShareButton({
               variant="ghost"
               className="font-bold"
               onClick={() => setFallbackOpen(false)}
+              data-testid="share-fallback-close"
             >
               <X className="w-4 h-4 mr-2" /> Close
             </Button>

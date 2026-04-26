@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, Star, Tag, Package, Shirt, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MerchCategory, MerchItem } from '@/types';
+import NativeShareButton from '@/components/share/NativeShareButton';
 
 const STATUS_LABELS: Record<string, string> = {
   available: 'Available',
@@ -96,7 +97,19 @@ function MerchCard({ item }: { item: MerchItem }) {
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
             {CATEGORY_LABELS[item.category as MerchCategory] ?? item.category}
           </p>
-          <h3 className="font-black text-lg leading-tight">{item.name}</h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-black text-lg leading-tight">{item.name}</h3>
+            <NativeShareButton
+              title={item.name}
+              text={`Check out this Candy CrackZZZ merch: ${item.name}`}
+              label="Share"
+              variant="ghost"
+              size="icon"
+              iconOnly
+              fallbackTitle={`Share ${item.name}`}
+              className="shrink-0 -mt-1 -mr-1 h-8 w-8"
+            />
+          </div>
           {item.description && (
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">{item.description}</p>
           )}
