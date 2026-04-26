@@ -2,15 +2,25 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Star, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
+import { useToast } from '@/hooks/use-toast';
 import PageLayout from '@/components/layout/PageLayout';
 import ProductCard from '@/components/ui/ProductCard';
 import logoPath from "@assets/candy_crackzzz_2_1776628492110.png";
 
 export default function HomePage() {
   const { products, settings, reviews } = useAppContext();
+  const { toast } = useToast();
+
+  const openOrderHelper = () => {
+    if (!settings.helperEnabled) {
+      toast({ title: 'Order Helper is currently turned off' });
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('cc-open-helper'));
+  };
 
   const featuredProducts = products.filter(p => p.isFeatured && p.isVisible).slice(0, 4);
   const seasonalProducts = products.filter(p => p.isSeasonal && p.isVisible).slice(0, 4);
@@ -68,18 +78,21 @@ export default function HomePage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto px-4"
           >
-            {settings.enableOrdering && (
-              <Link href="/menu" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto text-lg font-black px-12 py-8 rounded-full shadow-[0_0_20px_rgba(255,0,255,0.5)] hover:shadow-[0_0_40px_rgba(255,0,255,0.8)] transition-all duration-300 hover:scale-105 border-2 border-primary-foreground/20">
-                  ORDER NOW
-                </Button>
-              </Link>
-            )}
-            <Link href="/menu" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg font-black px-12 py-8 rounded-full hover:bg-white/10 border-2 transition-all duration-300 hover:scale-105 backdrop-blur-sm bg-background/20">
-                BROWSE MENU
+            <Link href="/menu" className="w-full sm:w-auto" data-testid="link-overview-browse-menu">
+              <Button size="lg" className="w-full sm:w-auto text-lg font-black px-10 py-8 rounded-full shadow-[0_0_20px_rgba(255,0,255,0.5)] hover:shadow-[0_0_40px_rgba(255,0,255,0.8)] transition-all duration-300 hover:scale-105 border-2 border-primary-foreground/20">
+                OVERVIEW / BROWSE MENU
               </Button>
             </Link>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              onClick={openOrderHelper}
+              data-testid="button-order-helper"
+              className="w-full sm:w-auto text-lg font-black px-10 py-8 rounded-full hover:bg-white/10 border-2 transition-all duration-300 hover:scale-105 backdrop-blur-sm bg-background/20"
+            >
+              <MessageCircle className="w-5 h-5 mr-2" /> ORDER HELPER
+            </Button>
           </motion.div>
         </div>
       </section>

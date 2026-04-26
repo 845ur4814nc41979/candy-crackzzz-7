@@ -33,7 +33,8 @@ export default function LocalCandyHelper() {
     return true;
   }, [path, isAdminRoute, settings.helperShowOnHome, settings.helperShowOnMenu, settings.helperShowOnMerch, settings.helperShowOnCart]);
 
-  const shouldShow = !!settings.helperEnabled && !!settings.helperShowFloating && allowedOnPath;
+  const showFloatingButton = !!settings.helperEnabled && !!settings.helperShowFloating && allowedOnPath;
+  const canOpenViaEvent = !!settings.helperEnabled && !isAdminRoute;
 
   useEffect(() => {
     if (open && messages.length === 0) {
@@ -47,7 +48,14 @@ export default function LocalCandyHelper() {
     }
   }, [messages.length, open]);
 
-  if (!shouldShow) return null;
+  useEffect(() => {
+    if (!canOpenViaEvent) return;
+    const handler = () => setOpen(true);
+    window.addEventListener('cc-open-helper', handler);
+    return () => window.removeEventListener('cc-open-helper', handler);
+  }, [canOpenViaEvent]);
+
+  if (!showFloatingButton && !open) return null;
 
   const send = () => {
     const text = input.trim();
@@ -135,7 +143,7 @@ export default function LocalCandyHelper() {
             </Button>
           </div>
         </div>
-      ) : (
+      ) : showFloatingButton ? (
         <Button
           onClick={() => setOpen(true)}
           className="rounded-full font-black uppercase tracking-wider shadow-[0_0_20px_rgba(255,0,255,0.45)] h-12 px-5"
@@ -143,7 +151,7 @@ export default function LocalCandyHelper() {
         >
           <MessageCircle className="mr-2 h-4 w-4" /> Helper
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }
