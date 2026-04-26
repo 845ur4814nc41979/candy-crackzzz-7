@@ -4,9 +4,25 @@ import path from "node:path";
 import { db, ccStateTable, ccMessagesTable, ccNotificationsTable, ccAnalyticsViewsTable } from "@workspace/db";
 import { eq, desc, sql, lt, gte, count } from "drizzle-orm";
 
-export type AdminRole = "owner" | "employee";
+export type AdminRole =
+  | "owner"
+  | "site_admin"
+  | "system_admin"
+  | "campaign_admin"
+  | "staff"
+  | "viewer"
+  | "employee";
 export type AdminUserStatus = "active" | "disabled";
 export type AdminActivityStatus = "active" | "logged_out" | "forced_logout";
+
+export const ADMIN_ROLES: AdminRole[] = [
+  "owner",
+  "site_admin",
+  "system_admin",
+  "campaign_admin",
+  "staff",
+  "viewer",
+];
 
 export interface AdminUser {
   id: string;
@@ -16,6 +32,112 @@ export interface AdminUser {
   status: AdminUserStatus;
   createdAt: string;
   mustChangePassword?: boolean;
+  lastLoginAt?: string;
+}
+
+export type AdminPermission =
+  | "manageAdmins"
+  | "manageSiteSettings"
+  | "manageSystemSettings"
+  | "manageProducts"
+  | "viewProducts"
+  | "manageMerch"
+  | "viewMerch"
+  | "manageOrders"
+  | "viewOrders"
+  | "manageMessages"
+  | "viewMessages"
+  | "manageRewards"
+  | "viewRewards"
+  | "manageCampaigns"
+  | "viewCampaigns"
+  | "managePayments"
+  | "manageBranding"
+  | "viewAnalytics"
+  | "manageAnalytics"
+  | "manageNotifications"
+  | "managePushNotifications"
+  | "manageBackups"
+  | "viewOnly";
+
+const ROLE_PERMISSIONS_SERVER: Record<Exclude<AdminRole, "employee">, AdminPermission[]> = {
+  owner: [
+    "manageAdmins",
+    "manageSiteSettings",
+    "manageSystemSettings",
+    "manageProducts", "viewProducts",
+    "manageMerch", "viewMerch",
+    "manageOrders", "viewOrders",
+    "manageMessages", "viewMessages",
+    "manageRewards", "viewRewards",
+    "manageCampaigns", "viewCampaigns",
+    "managePayments",
+    "manageBranding",
+    "viewAnalytics", "manageAnalytics",
+    "manageNotifications",
+    "managePushNotifications",
+    "manageBackups",
+  ],
+  site_admin: [
+    "manageSiteSettings",
+    "manageProducts", "viewProducts",
+    "manageMerch", "viewMerch",
+    "manageOrders", "viewOrders",
+    "manageMessages", "viewMessages",
+    "manageRewards", "viewRewards",
+    "manageCampaigns", "viewCampaigns",
+    "managePayments",
+    "manageBranding",
+    "viewAnalytics",
+    "manageNotifications",
+  ],
+  system_admin: [
+    "manageSystemSettings",
+    "manageNotifications",
+    "managePushNotifications",
+    "viewAnalytics", "manageAnalytics",
+    "manageBackups",
+  ],
+  campaign_admin: [
+    "manageCampaigns", "viewCampaigns",
+    "manageRewards", "viewRewards",
+    "viewMessages",
+    "viewOrders",
+    "viewAnalytics",
+  ],
+  staff: [
+    "manageOrders", "viewOrders",
+    "manageMessages", "viewMessages",
+  ],
+  viewer: [
+    "viewProducts",
+    "viewMerch",
+    "viewOrders",
+    "viewMessages",
+    "viewCampaigns",
+    "viewRewards",
+    "viewAnalytics",
+    "viewOnly",
+  ],
+};
+
+export function normalizeAdminRole(role: AdminRole): Exclude<AdminRole, "employee"> {
+  return role === "employee" ? "staff" : role;
+}
+
+export function roleHasServerPermission(role: AdminRole, permission: AdminPermission): boolean {
+  const effective = normalizeAdminRole(role);
+  return ROLE_PERMISSIONS_SERVER[effective]?.includes(permission) ?? false;
+}
+
+export function userHasServerPermission(user: AdminUser | null, permission: AdminPermission): boolean {
+  if (!user) return false;
+  if (user.status !== "active") return false;
+  return roleHasServerPermission(user.role, permission);
+}
+
+export function isOwnerRole(role: AdminRole): boolean {
+  return role === "owner";
 }
 
 export interface AdminActivityEntry {

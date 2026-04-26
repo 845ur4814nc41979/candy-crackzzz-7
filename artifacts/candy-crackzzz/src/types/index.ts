@@ -95,7 +95,14 @@ export interface AdminAccount {
   passwordHash: string;
 }
 
-export type AdminRole = 'owner' | 'employee';
+export type AdminRole =
+  | 'owner'
+  | 'site_admin'
+  | 'system_admin'
+  | 'campaign_admin'
+  | 'staff'
+  | 'viewer'
+  | 'employee';
 export type AdminUserStatus = 'active' | 'disabled';
 export type AdminActivityStatus = 'active' | 'logged_out' | 'forced_logout';
 
@@ -107,6 +114,7 @@ export interface AdminUser {
   status: AdminUserStatus;
   createdAt: string;
   mustChangePassword?: boolean;
+  lastLoginAt?: string;
 }
 
 export interface AdminSession {

@@ -1,10 +1,11 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap, Users } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useAppContext } from '@/context/AppContext';
+import { Permission, roleLabels, userHasAnyPermission } from '@/lib/permissions';
 import NotificationBell from '@/components/admin/NotificationBell';
 import NotificationSoundUnlockBanner from '@/components/admin/NotificationSoundUnlockBanner';
 
@@ -13,32 +14,37 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   label: string;
   badge?: number;
-  ownerOnly?: boolean;
+  /** If empty/undefined, anyone signed in can see this link. */
+  permissions?: Permission[];
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const { logout, currentUser, isOwner } = useAuth();
+  const { logout, currentUser } = useAuth();
   const { reviews } = useAppContext();
 
   const pendingReviews = reviews.filter(r => r.status === 'pending').length;
 
   const navItems: NavItem[] = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/products', icon: Package, label: 'Products', ownerOnly: true },
-    { href: '/admin/merch', icon: Shirt, label: 'Merch', ownerOnly: true },
-    { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
-    { href: '/admin/messages', icon: Mail, label: 'Messages' },
-    { href: '/admin/reviews', icon: Star, label: 'Reviews', badge: pendingReviews > 0 ? pendingReviews : undefined, ownerOnly: true },
-    { href: '/admin/rewards', icon: Gift, label: 'Rewards', ownerOnly: true },
-    { href: '/admin/campaigns', icon: Zap, label: 'Campaigns', ownerOnly: true },
-    { href: '/admin/settings', icon: Settings, label: 'Settings', ownerOnly: true },
-    { href: '/admin/branding', icon: Palette, label: 'Branding', ownerOnly: true },
-    { href: '/admin/payments', icon: CreditCard, label: 'Payments', ownerOnly: true },
+    { href: '/admin/products', icon: Package, label: 'Products', permissions: ['manageProducts', 'viewProducts'] },
+    { href: '/admin/merch', icon: Shirt, label: 'Merch', permissions: ['manageMerch', 'viewMerch'] },
+    { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', permissions: ['manageOrders', 'viewOrders'] },
+    { href: '/admin/messages', icon: Mail, label: 'Messages', permissions: ['manageMessages', 'viewMessages'] },
+    { href: '/admin/reviews', icon: Star, label: 'Reviews', badge: pendingReviews > 0 ? pendingReviews : undefined, permissions: ['manageSiteSettings'] },
+    { href: '/admin/rewards', icon: Gift, label: 'Rewards', permissions: ['manageRewards', 'viewRewards'] },
+    { href: '/admin/campaigns', icon: Zap, label: 'Campaigns', permissions: ['manageCampaigns', 'viewCampaigns'] },
+    { href: '/admin/settings', icon: Settings, label: 'Settings', permissions: ['manageSiteSettings', 'manageSystemSettings'] },
+    { href: '/admin/branding', icon: Palette, label: 'Branding', permissions: ['manageBranding'] },
+    { href: '/admin/payments', icon: CreditCard, label: 'Payments', permissions: ['managePayments'] },
+    { href: '/admin/team', icon: Users, label: 'Team', permissions: ['manageAdmins'] },
     { href: '/admin/account', icon: ShieldCheck, label: 'Account' },
   ];
 
-  const visibleNavItems = navItems.filter(item => !item.ownerOnly || isOwner);
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.permissions || item.permissions.length === 0) return true;
+    return userHasAnyPermission(currentUser, item.permissions);
+  });
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border w-full">
@@ -51,7 +57,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Link>
         {currentUser && (
           <div className="px-1 text-xs font-black uppercase tracking-wider text-sidebar-foreground/50">
-            {currentUser.role === 'owner' ? 'Owner Access' : 'Employee Access'} · {currentUser.username}
+            {roleLabels[currentUser.role] ?? currentUser.role} · {currentUser.username}
           </div>
         )}
       </div>

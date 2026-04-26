@@ -17,6 +17,7 @@ export interface AuthSnapshot {
   isAdminSetup: boolean;
   currentUser: PublicAdminUser | null;
   staffUsers: PublicAdminUser[];
+  adminUsers: PublicAdminUser[];
   activityLogs: AdminActivityEntry[];
 }
 
@@ -101,6 +102,55 @@ export function apiSetEmployeeAccess(userId: string, enabled: boolean) {
   return apiRequest<{ auth: AuthSnapshot }>('/auth/set-employee-access', {
     method: 'POST',
     body: JSON.stringify({ userId, enabled }),
+  });
+}
+
+// ----- Admin Team CRUD -----
+
+export interface AdminInvite {
+  username: string;
+  password: string;
+  role: AdminRole;
+}
+
+export function apiCreateAdminUser(payload: {
+  username: string;
+  password: string;
+  role: AdminRole;
+  mustChangePassword?: boolean;
+}) {
+  return apiRequest<{ auth: AuthSnapshot; invite: AdminInvite }>('/auth/admin-users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function apiUpdateAdminUser(
+  userId: string,
+  payload: { role?: AdminRole; status?: 'active' | 'disabled'; mustChangePassword?: boolean; username?: string },
+) {
+  return apiRequest<{ auth: AuthSnapshot }>(`/auth/admin-users/${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function apiResetAdminUserPassword(
+  userId: string,
+  payload: { password: string; mustChangePassword?: boolean },
+) {
+  return apiRequest<{ auth: AuthSnapshot; invite: AdminInvite }>(
+    `/auth/admin-users/${encodeURIComponent(userId)}/reset-password`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function apiDeleteAdminUser(userId: string) {
+  return apiRequest<{ auth: AuthSnapshot }>(`/auth/admin-users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
   });
 }
 

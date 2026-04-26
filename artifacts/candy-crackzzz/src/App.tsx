@@ -35,6 +35,7 @@ import AdminPayments from "@/pages/admin/AdminPayments";
 import AdminReviews from "@/pages/admin/AdminReviews";
 import AdminAccount from "@/pages/admin/AdminAccount";
 import AdminMessages from "@/pages/admin/AdminMessages";
+import AdminTeam from "@/pages/admin/AdminTeam";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
 
 const queryClient = new QueryClient();
@@ -63,43 +64,46 @@ function Router() {
         {() => <ProtectedRoute><AdminDashboard /></ProtectedRoute>}
       </Route>
       <Route path="/admin/products">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminProducts /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageProducts', 'viewProducts']}><AdminProducts /></ProtectedRoute>}
       </Route>
       <Route path="/admin/products/new">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminProductForm /></ProtectedRoute>}
+        {() => <ProtectedRoute requirePermission="manageProducts"><AdminProductForm /></ProtectedRoute>}
       </Route>
       <Route path="/admin/products/:id/edit">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminProductForm /></ProtectedRoute>}
+        {() => <ProtectedRoute requirePermission="manageProducts"><AdminProductForm /></ProtectedRoute>}
       </Route>
       <Route path="/admin/orders">
-        {() => <ProtectedRoute><AdminOrders /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageOrders', 'viewOrders']}><AdminOrders /></ProtectedRoute>}
       </Route>
       <Route path="/admin/settings">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminSettings /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageSiteSettings', 'manageSystemSettings']}><AdminSettings /></ProtectedRoute>}
       </Route>
       <Route path="/admin/rewards">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminRewards /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageRewards', 'viewRewards']}><AdminRewards /></ProtectedRoute>}
       </Route>
       <Route path="/admin/merch">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminMerch /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageMerch', 'viewMerch']}><AdminMerch /></ProtectedRoute>}
       </Route>
       <Route path="/admin/campaigns">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminCampaigns /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageCampaigns', 'viewCampaigns']}><AdminCampaigns /></ProtectedRoute>}
       </Route>
       <Route path="/admin/branding">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminBranding /></ProtectedRoute>}
+        {() => <ProtectedRoute requirePermission="manageBranding"><AdminBranding /></ProtectedRoute>}
       </Route>
       <Route path="/admin/payments">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminPayments /></ProtectedRoute>}
+        {() => <ProtectedRoute requirePermission="managePayments"><AdminPayments /></ProtectedRoute>}
       </Route>
       <Route path="/admin/reviews">
-        {() => <ProtectedRoute allowedRoles={['owner']}><AdminReviews /></ProtectedRoute>}
+        {() => <ProtectedRoute requirePermission="manageSiteSettings"><AdminReviews /></ProtectedRoute>}
       </Route>
       <Route path="/admin/account">
         {() => <ProtectedRoute><AdminAccount /></ProtectedRoute>}
       </Route>
       <Route path="/admin/messages">
-        {() => <ProtectedRoute><AdminMessages /></ProtectedRoute>}
+        {() => <ProtectedRoute requireAnyPermission={['manageMessages', 'viewMessages']}><AdminMessages /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/team">
+        {() => <ProtectedRoute requirePermission="manageAdmins"><AdminTeam /></ProtectedRoute>}
       </Route>
 
       <Route component={NotFound} />

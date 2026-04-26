@@ -2,9 +2,12 @@ import { Router, type Request, type Response } from "express";
 import crypto from "node:crypto";
 import {
   type AdminActivityEntry,
+  type AdminPermission,
+  type AdminRole,
   type AdminUser,
   type PersistedDb,
   type StateKey,
+  ADMIN_ROLES,
   STATE_KEYS,
   OWNER_ONLY_STATE_KEYS,
   defaultSettings,
@@ -15,6 +18,8 @@ import {
   readDb,
   writeDb,
   isUsingDatabase,
+  userHasServerPermission,
+  normalizeAdminRole,
   listMessages,
   createMessage,
   markMessageRead,
@@ -88,12 +93,32 @@ function requireOwner(db: PersistedDb, req: Request): AdminUser | null {
   if (!user || user.role !== "owner") return null;
   return user;
 }
+function requirePermission(db: PersistedDb, req: Request, permission: AdminPermission): AdminUser | null {
+  const user = getCurrentUser(db, req);
+  if (!user) return null;
+  if (!userHasServerPermission(user, permission)) return null;
+  return user;
+}
+function isStaffRole(role: AdminRole): boolean {
+  const norm = normalizeAdminRole(role);
+  return norm === "staff";
+}
+function countActiveOwners(db: PersistedDb, excludeUserId?: string): number {
+  return db.auth.users.filter(
+    (u) => u.role === "owner" && u.status === "active" && u.id !== excludeUserId,
+  ).length;
+}
 function buildAuthSnapshot(db: PersistedDb, req: Request) {
   const currentUser = getCurrentUser(db, req);
   return {
     isAdminSetup: db.auth.users.length > 0,
     currentUser: sanitizeUser(currentUser),
-    staffUsers: sanitizeUsers(db.auth.users.filter((u) => u.role === "employee")),
+    // Legacy field: kept for backward compat with the older AdminAccount page.
+    staffUsers: sanitizeUsers(db.auth.users.filter((u) => isStaffRole(u.role))),
+    // Full team list (everyone). Owner-gated visibility is enforced where it's used.
+    adminUsers: userHasServerPermission(currentUser, "manageAdmins")
+      ? sanitizeUsers(db.auth.users)
+      : [],
     activityLogs: db.auth.activityLogs,
   };
 }
@@ -106,6 +131,7 @@ function startSession(db: PersistedDb, user: AdminUser) {
     ...db.auth.activityLogs,
   ];
   db.auth.sessions[token] = { userId: user.id, activityId, startedAt: loginAt };
+  db.auth.users = db.auth.users.map((u) => (u.id === user.id ? { ...u, lastLoginAt: loginAt } : u));
   return token;
 }
 function finalizeActivityEntry(
@@ -267,8 +293,8 @@ router.post("/cc/auth/change-credentials", async (req, res) => {
       res.status(400).json({ message: "That username is already in use." });
       return;
     }
-    if ((body.newPassword ?? "").trim() && (body.newPassword ?? "").length < 6) {
-      res.status(400).json({ message: "New password must be at least 6 characters." });
+    if ((body.newPassword ?? "").trim() && (body.newPassword ?? "").length < 8) {
+      res.status(400).json({ message: "New password must be at least 8 characters." });
       return;
     }
     const passwordChanged = (body.newPassword ?? "").trim().length > 0;
@@ -340,7 +366,9 @@ router.post("/cc/auth/set-employee-access", async (req, res) => {
       return;
     }
     const body = (req.body ?? {}) as { userId?: string; enabled?: boolean };
-    const target = db.auth.users.find((u) => u.id === body.userId && u.role === "employee");
+    const target = db.auth.users.find(
+      (u) => u.id === body.userId && (u.role === "employee" || normalizeAdminRole(u.role) === "staff"),
+    );
     if (!target) {
       res.status(404).json({ message: "Employee account not found." });
       return;
@@ -353,6 +381,221 @@ router.post("/cc/auth/set-employee-access", async (req, res) => {
     res.json({ auth: buildAuthSnapshot(db, req) });
   } catch (error) {
     res.status(500).json({ message: error instanceof Error ? error.message : "Update failed." });
+  }
+});
+
+// -------- ADMIN TEAM (Owner-only CRUD over all admin users) --------
+
+function isAssignableRole(role: unknown): role is AdminRole {
+  return typeof role === "string" && (ADMIN_ROLES as string[]).includes(role);
+}
+
+router.post("/cc/auth/admin-users", async (req, res) => {
+  try {
+    const db = await readDb();
+    const actor = requirePermission(db, req, "manageAdmins");
+    if (!actor) {
+      res.status(403).json({ message: "Only admins with team management can create users." });
+      return;
+    }
+    const body = (req.body ?? {}) as {
+      username?: string;
+      password?: string;
+      role?: string;
+      mustChangePassword?: boolean;
+    };
+    const username = normalizeUsername(body.username ?? "");
+    const password = body.password ?? "";
+    const role = body.role ?? "staff";
+
+    if (username.length < 3) {
+      res.status(400).json({ message: "Username must be at least 3 characters." });
+      return;
+    }
+    if (password.length < 8) {
+      res.status(400).json({ message: "Temporary password must be at least 8 characters." });
+      return;
+    }
+    if (!isAssignableRole(role) || role === "employee") {
+      res.status(400).json({ message: "Pick a valid role." });
+      return;
+    }
+    if (db.auth.users.some((u) => u.username === username)) {
+      res.status(400).json({ message: "That username is already in use." });
+      return;
+    }
+
+    const newUser: AdminUser = {
+      id: createId("usr"),
+      username,
+      passwordHash: hashPassword(password),
+      role,
+      status: "active",
+      createdAt: new Date().toISOString(),
+      mustChangePassword: body.mustChangePassword !== false,
+    };
+    db.auth.users = [...db.auth.users, newUser];
+    await writeDb(db);
+    res.json({
+      auth: buildAuthSnapshot(db, req),
+      invite: { username: newUser.username, password, role: newUser.role },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Create failed." });
+  }
+});
+
+router.patch("/cc/auth/admin-users/:id", async (req, res) => {
+  try {
+    const db = await readDb();
+    const actor = requirePermission(db, req, "manageAdmins");
+    if (!actor) {
+      res.status(403).json({ message: "Only admins with team management can update users." });
+      return;
+    }
+    const target = db.auth.users.find((u) => u.id === req.params.id);
+    if (!target) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+    const body = (req.body ?? {}) as {
+      role?: string;
+      status?: "active" | "disabled";
+      mustChangePassword?: boolean;
+      username?: string;
+    };
+
+    let nextRole: AdminRole = target.role;
+    if (typeof body.role === "string") {
+      if (!isAssignableRole(body.role) || body.role === "employee") {
+        res.status(400).json({ message: "Pick a valid role." });
+        return;
+      }
+      nextRole = body.role;
+    }
+
+    let nextStatus = target.status;
+    if (body.status === "active" || body.status === "disabled") {
+      nextStatus = body.status;
+    }
+
+    let nextUsername = target.username;
+    if (typeof body.username === "string" && body.username.trim().length > 0) {
+      nextUsername = normalizeUsername(body.username);
+      if (nextUsername.length < 3) {
+        res.status(400).json({ message: "Username must be at least 3 characters." });
+        return;
+      }
+      if (db.auth.users.some((u) => u.username === nextUsername && u.id !== target.id)) {
+        res.status(400).json({ message: "That username is already in use." });
+        return;
+      }
+    }
+
+    // Last-active-owner safety: don't allow changing role away from owner or disabling
+    // if this is the only active owner.
+    const wouldRemoveOwner =
+      target.role === "owner" && (nextRole !== "owner" || nextStatus !== "active");
+    if (wouldRemoveOwner && countActiveOwners(db, target.id) === 0) {
+      res.status(400).json({
+        message: "You can't disable or downgrade the only active owner. Promote another owner first.",
+      });
+      return;
+    }
+
+    db.auth.users = db.auth.users.map((u) =>
+      u.id === target.id
+        ? {
+            ...u,
+            role: nextRole,
+            status: nextStatus,
+            username: nextUsername,
+            mustChangePassword:
+              typeof body.mustChangePassword === "boolean" ? body.mustChangePassword : u.mustChangePassword,
+          }
+        : u,
+    );
+    if (nextStatus === "disabled") forceLogoutUserSessions(db, target.id);
+    if (nextUsername !== target.username) {
+      db.auth.activityLogs = db.auth.activityLogs.map((e) =>
+        e.userId === target.id ? { ...e, username: nextUsername } : e,
+      );
+    }
+    await writeDb(db);
+    res.json({ auth: buildAuthSnapshot(db, req) });
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Update failed." });
+  }
+});
+
+router.post("/cc/auth/admin-users/:id/reset-password", async (req, res) => {
+  try {
+    const db = await readDb();
+    const actor = requirePermission(db, req, "manageAdmins");
+    if (!actor) {
+      res.status(403).json({ message: "Only admins with team management can reset passwords." });
+      return;
+    }
+    const target = db.auth.users.find((u) => u.id === req.params.id);
+    if (!target) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+    const body = (req.body ?? {}) as { password?: string; mustChangePassword?: boolean };
+    const password = body.password ?? "";
+    if (password.length < 8) {
+      res.status(400).json({ message: "Temporary password must be at least 8 characters." });
+      return;
+    }
+    db.auth.users = db.auth.users.map((u) =>
+      u.id === target.id
+        ? {
+            ...u,
+            passwordHash: hashPassword(password),
+            mustChangePassword: body.mustChangePassword !== false,
+          }
+        : u,
+    );
+    forceLogoutUserSessions(db, target.id);
+    await writeDb(db);
+    res.json({
+      auth: buildAuthSnapshot(db, req),
+      invite: { username: target.username, password, role: target.role },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Reset failed." });
+  }
+});
+
+router.delete("/cc/auth/admin-users/:id", async (req, res) => {
+  try {
+    const db = await readDb();
+    const actor = requirePermission(db, req, "manageAdmins");
+    if (!actor) {
+      res.status(403).json({ message: "Only admins with team management can delete users." });
+      return;
+    }
+    const target = db.auth.users.find((u) => u.id === req.params.id);
+    if (!target) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+    if (target.id === actor.id) {
+      res.status(400).json({ message: "You can't delete your own account." });
+      return;
+    }
+    if (target.role === "owner" && countActiveOwners(db, target.id) === 0) {
+      res.status(400).json({
+        message: "You can't delete the only active owner. Promote another owner first.",
+      });
+      return;
+    }
+    db.auth.users = db.auth.users.filter((u) => u.id !== target.id);
+    forceLogoutUserSessions(db, target.id);
+    await writeDb(db);
+    res.json({ auth: buildAuthSnapshot(db, req) });
+  } catch (error) {
+    res.status(500).json({ message: error instanceof Error ? error.message : "Delete failed." });
   }
 });
 
