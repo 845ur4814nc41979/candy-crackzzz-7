@@ -17,6 +17,16 @@ import {
   unlockNotificationAudio,
 } from '@/lib/notificationSounds';
 
+async function unlockThenPlay(play: () => Promise<boolean>, onFail: () => void) {
+  const ok = await unlockNotificationAudio();
+  if (!ok) {
+    onFail();
+    return;
+  }
+  const played = await play();
+  if (!played) onFail();
+}
+
 type SectionCardProps = {
   title: string;
   children: React.ReactNode;
@@ -414,19 +424,22 @@ export default function AdminSettings() {
                   key: 'orderSoundEnabled' as const,
                   label: 'Order chime',
                   desc: 'Bright two-note (G5 → C6) for new orders.',
-                  preview: () => playOrderNotificationSound(formData.notificationSoundVolume ?? 0.7),
+                  testLabel: 'Test Order Sound',
+                  play: () => playOrderNotificationSound(formData.notificationSoundVolume ?? 0.7),
                 },
                 {
                   key: 'messageSoundEnabled' as const,
                   label: 'Message chime',
                   desc: 'Soft double ping for new customer messages.',
-                  preview: () => playMessageNotificationSound(formData.notificationSoundVolume ?? 0.7),
+                  testLabel: 'Test Message Sound',
+                  play: () => playMessageNotificationSound(formData.notificationSoundVolume ?? 0.7),
                 },
                 {
                   key: 'generalSoundEnabled' as const,
                   label: 'General chime',
                   desc: 'Short neutral beep for everything else.',
-                  preview: () => playGeneralNotificationSound(formData.notificationSoundVolume ?? 0.7),
+                  testLabel: 'Test General Sound',
+                  play: () => playGeneralNotificationSound(formData.notificationSoundVolume ?? 0.7),
                 },
               ].map(t => (
                 <div key={t.key} className="flex items-center justify-between p-3 rounded-lg border border-border">
@@ -439,13 +452,15 @@ export default function AdminSettings() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        unlockNotificationAudio();
-                        t.preview();
-                      }}
+                      onClick={() => void unlockThenPlay(t.play, () => toast({
+                        title: 'Browser blocked sound',
+                        description: 'Your browser blocked sound until you interact with the page. Click Enable notification sounds.',
+                        variant: 'destructive',
+                      }))}
                       className="font-bold uppercase text-xs"
+                      title={t.testLabel}
                     >
-                      Preview
+                      {t.testLabel}
                     </Button>
                     <Switch checked={formData[t.key]} onCheckedChange={v => set({ [t.key]: v })} />
                   </div>

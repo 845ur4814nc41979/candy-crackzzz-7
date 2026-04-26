@@ -16,7 +16,20 @@ import {
   playGeneralNotificationSound,
   unlockNotificationAudio,
   canPlayNotificationAudio,
+  subscribeNotificationAudio,
 } from '@/lib/notificationSounds';
+
+function debug(...args: unknown[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (window.localStorage?.getItem('cc_audio_debug') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('[NotificationBell]', ...args);
+    }
+  } catch {
+    // ignore
+  }
+}
 
 function typeMeta(type: string) {
   if (type === 'order') {
@@ -34,23 +47,41 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [unread, setUnread] = useState(0);
-  const [audioReady, setAudioReady] = useState(false);
+  const [audioReady, setAudioReady] = useState<boolean>(canPlayNotificationAudio());
+  const [missedDueToLock, setMissedDueToLock] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const seenIds = useRef<Set<string>>(new Set());
   const isInitialLoad = useRef(true);
 
   const enabled = settings.notificationBellEnabled !== false;
 
-  const playFor = (n: NotificationRecord) => {
-    if (!settings.notificationSoundsEnabled) return;
-    if (!canPlayNotificationAudio()) return;
+  const playFor = async (n: NotificationRecord) => {
+    debug('notification received', { id: n.id, type: n.type });
+    if (!settings.notificationSoundsEnabled) {
+      debug('sounds disabled in settings, skipping');
+      return;
+    }
     const vol = settings.notificationSoundVolume ?? 0.7;
+    let played = false;
     if (n.type === 'order') {
-      if (settings.orderSoundEnabled !== false) playOrderNotificationSound(vol);
+      if (settings.orderSoundEnabled !== false) {
+        debug('selected sound: order');
+        played = await playOrderNotificationSound(vol);
+      }
     } else if (n.type === 'message') {
-      if (settings.messageSoundEnabled !== false) playMessageNotificationSound(vol);
+      if (settings.messageSoundEnabled !== false) {
+        debug('selected sound: message');
+        played = await playMessageNotificationSound(vol);
+      }
     } else {
-      if (settings.generalSoundEnabled !== false) playGeneralNotificationSound(vol);
+      if (settings.generalSoundEnabled !== false) {
+        debug('selected sound: general');
+        played = await playGeneralNotificationSound(vol);
+      }
+    }
+    debug('played?', played, 'audioReady?', canPlayNotificationAudio());
+    if (!played) {
+      setMissedDueToLock(true);
     }
   };
 
@@ -62,13 +93,12 @@ export default function NotificationBell() {
         for (const n of incoming) seenIds.current.add(n.id);
         isInitialLoad.current = false;
       } else {
-        // play sound for newest unseen unread notification only
         const newOnes = incoming.filter((n) => !seenIds.current.has(n.id));
         for (const n of newOnes) seenIds.current.add(n.id);
         const newestUnread = newOnes
           .filter((n) => !n.readAt)
           .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
-        if (newestUnread) playFor(newestUnread);
+        if (newestUnread) void playFor(newestUnread);
       }
       setNotifications(incoming);
       setUnread(result.unread);
@@ -103,9 +133,16 @@ export default function NotificationBell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, isLoggedIn, settings.notificationPollingEnabled, settings.notificationPollingSeconds]);
 
-  // audio readiness state
+  // subscribe to global audio readiness changes
   useEffect(() => {
-    setAudioReady(canPlayNotificationAudio());
+    const refresh = () => {
+      const ready = canPlayNotificationAudio();
+      setAudioReady(ready);
+      if (ready) setMissedDueToLock(false);
+    };
+    refresh();
+    const unsub = subscribeNotificationAudio(refresh);
+    return () => unsub();
   }, [settings.notificationSoundsEnabled]);
 
   useEffect(() => {
@@ -153,12 +190,14 @@ export default function NotificationBell() {
     return null;
   };
 
-  const handleEnableSound = () => {
-    const ok = unlockNotificationAudio();
-    if (ok) setAudioReady(true);
-    // Play a tiny confirmation chime
-    if (ok && settings.notificationSoundsEnabled) {
-      playGeneralNotificationSound(settings.notificationSoundVolume ?? 0.7);
+  const handleEnableSound = async () => {
+    const ok = await unlockNotificationAudio();
+    setAudioReady(ok);
+    if (ok) {
+      setMissedDueToLock(false);
+      if (settings.notificationSoundsEnabled) {
+        await playGeneralNotificationSound(settings.notificationSoundVolume ?? 0.7);
+      }
     }
   };
 
@@ -218,11 +257,18 @@ export default function NotificationBell() {
 
           {showSoundUnlock && (
             <button
-              onClick={handleEnableSound}
+              onClick={() => void handleEnableSound()}
               className="w-full px-4 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider border-b border-border flex items-center justify-center gap-2"
             >
               <Volume2 className="w-3.5 h-3.5" /> Click to enable notification sounds
             </button>
+          )}
+
+          {missedDueToLock && (
+            <div className="px-4 py-3 bg-amber-500/15 text-amber-200 text-xs font-bold border-b border-border flex items-center gap-2">
+              <VolumeX className="w-3.5 h-3.5 shrink-0" />
+              <span>Notification received. Click <span className="font-black">Enable Sounds</span> above to hear future alerts.</span>
+            </div>
           )}
 
           <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useAppContext } from '@/context/AppContext';
 import NotificationBell from '@/components/admin/NotificationBell';
+import NotificationSoundUnlockBanner from '@/components/admin/NotificationSoundUnlockBanner';
 
 type NavItem = {
   href: string;
@@ -123,6 +124,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <NotificationBell />
         </div>
         <div className="p-4 lg:p-8 pt-20 lg:pt-2 space-y-4">
+          <NotificationSoundUnlockBanner />
           {currentUser?.mustChangePassword && location !== '/admin/account' && (
             <div className="bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-2xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />

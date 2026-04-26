@@ -72,9 +72,17 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - `src/lib/referralShare.ts` builds the share message from `settings.businessName`, `referralReferrerBonusPoints`, and `referralReferredCustomerBonusPoints`. Provides Web Share API + clipboard helpers and SMS / mailto fallback URL builders.
 - `src/components/referrals/ReferralShareButton.tsx` is the reusable share button. It hides itself when `settings.enableReferrals` is false or when no code is provided. Uses `navigator.share` when available and falls back to a dropdown with Copy code, Copy message, SMS, and Email options. Wired into `RewardsPage`, `RewardsPagePlus`, `CartPage` (customer's own code), and `AdminRewards` (selected profile only — no other customer data is shared).
 
-### Notification Bell
-- Bell icon in admin top bar polls `/api/cc/notifications` every 30s.
+### Notification Bell & Sounds
+- Bell icon in admin top bar polls `/api/cc/notifications` (default 12s, 4× slower when tab hidden).
 - Shows unread count, lists recent notifications, supports mark-all-read, mark single read/unread, delete, and click-through to `/admin/messages` or `/admin/orders`.
+- Sound system lives in `src/lib/notificationSounds.ts`. `unlockNotificationAudio()` is **async** and awaits `ctx.resume()` before flipping the in-memory `unlocked` flag — this is the gate that prevents silent first-call failures. `canPlayNotificationAudio()` returns true only when unlocked AND `ctx.state === 'running'`. All `play*` helpers are async, return `boolean`, and self-clear `unlocked` if the context dies mid-session so the UI re-prompts.
+- `subscribeNotificationAudio(listener)` lets React components react to global unlock/lock state changes without polling.
+- Debug logging is gated by `localStorage.cc_audio_debug === '1'` — set it in DevTools to trace `[notificationSounds]` / `[NotificationBell]` events while debugging.
+- `NotificationSoundUnlockBanner` (rendered in `AdminLayout` above `{children}`) shows a full-width "Click to enable notification sounds" prompt whenever `notificationSoundsEnabled` is on but audio is locked. Clicking it awaits unlock and plays a confirmation chime.
+- `NotificationBell` maps `type === 'order'` → order chime, `type === 'message'` → message chime, anything else → general chime. If a notification arrives while audio is locked, it sets a "Notification received. Click Enable Sounds…" warning inside the dropdown (not silent).
+- `AdminSettings → Alerts → Notification Sounds` exposes the master toggle, volume slider, per-type toggles, and **Test Order/Message/General Sound** buttons that await unlock before playing and toast on browser block.
+- Sounds are admin-only — customer pages never import the sound module.
+- Backend (`artifacts/api-server/src/routes/candy.ts`) creates `type: "order"` for new orders and `type: "message"` for new contact submissions; everything else falls through to general.
 
 ### Key Features
 - First-run admin setup → normal login → session-based auth → logout
