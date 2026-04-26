@@ -15,11 +15,13 @@ export default function HomePage() {
   const { toast } = useToast();
 
   const openOrderHelper = () => {
-    if (!settings.helperEnabled) {
+    if (settings.helperEnabled === false) {
       toast({ title: 'Order Helper is currently turned off' });
       return;
     }
-    window.dispatchEvent(new CustomEvent('cc-open-helper'));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cc-open-helper'));
+    }
   };
 
   const featuredProducts = products.filter(p => p.isFeatured && p.isVisible).slice(0, 4);

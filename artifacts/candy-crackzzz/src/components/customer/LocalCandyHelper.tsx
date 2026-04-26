@@ -23,22 +23,23 @@ export default function LocalCandyHelper() {
 
   const path = (location || '/').toLowerCase();
   const isAdminRoute = path.startsWith('/admin');
+  const helperEnabled = settings.helperEnabled ?? true;
 
   const allowedOnPath = useMemo(() => {
     if (isAdminRoute) return false;
-    if (path === '/' || path === '') return !!settings.helperShowOnHome;
-    if (path.startsWith('/menu')) return !!settings.helperShowOnMenu;
-    if (path.startsWith('/merch')) return !!settings.helperShowOnMerch;
-    if (path.startsWith('/cart')) return !!settings.helperShowOnCart;
+    if (path === '/' || path === '') return settings.helperShowOnHome ?? true;
+    if (path.startsWith('/menu')) return settings.helperShowOnMenu ?? true;
+    if (path.startsWith('/merch')) return settings.helperShowOnMerch ?? true;
+    if (path.startsWith('/cart')) return settings.helperShowOnCart ?? true;
     return true;
   }, [path, isAdminRoute, settings.helperShowOnHome, settings.helperShowOnMenu, settings.helperShowOnMerch, settings.helperShowOnCart]);
 
-  const showFloatingButton = !!settings.helperEnabled && !!settings.helperShowFloating && allowedOnPath;
-  const canOpenViaEvent = !!settings.helperEnabled && !isAdminRoute;
+  const showFloatingButton = !!helperEnabled && (settings.helperShowFloating ?? true) && allowedOnPath;
+  const canOpenViaEvent = !!helperEnabled && !isAdminRoute;
 
   useEffect(() => {
     if (open && messages.length === 0) {
-      setMessages([{ role: 'bot', text: settings.helperGreeting }]);
+      setMessages([{ role: 'bot', text: settings.helperGreeting ?? 'Need help picking something sweet?' }]);
     }
   }, [open, messages.length, settings.helperGreeting]);
 

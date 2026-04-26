@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import AppErrorBoundary from "@/components/layout/AppErrorBoundary";
 
 import HomePage from "@/pages/HomePage";
 import MenuPage from "@/pages/MenuPage";
@@ -114,17 +115,19 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <PageViewTracker />
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </AppProvider>
-      </AuthProvider>
+      <AppErrorBoundary>
+        <AuthProvider>
+          <AppProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <PageViewTracker />
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </AppProvider>
+        </AuthProvider>
+      </AppErrorBoundary>
     </QueryClientProvider>
   );
 }
