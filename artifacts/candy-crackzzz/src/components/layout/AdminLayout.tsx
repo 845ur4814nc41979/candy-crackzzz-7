@@ -8,6 +8,7 @@ import { useAppContext } from '@/context/AppContext';
 import { Permission, roleLabels, userHasAnyPermission } from '@/lib/permissions';
 import NotificationBell from '@/components/admin/NotificationBell';
 import NotificationSoundUnlockBanner from '@/components/admin/NotificationSoundUnlockBanner';
+import AdminDemoLauncher from '@/components/demo/AdminDemoLauncher';
 
 type NavItem = {
   href: string;
@@ -120,14 +121,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </SheetContent>
         </Sheet>
         <span className="font-black text-xl uppercase tracking-wider text-sidebar-foreground">Admin Panel</span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1">
+          <AdminDemoLauncher auto={false} trigger="icon" />
           <NotificationBell />
           <Link href="/" className="text-xs font-bold text-sidebar-foreground/60 hover:text-sidebar-foreground uppercase tracking-wider">Store</Link>
         </div>
       </div>
 
       <main className="flex-1 min-w-0 overflow-auto">
-        <div className="hidden lg:flex justify-end px-8 pt-6">
+        <div className="hidden lg:flex justify-end items-center gap-2 px-8 pt-6">
+          <AdminDemoLauncher auto trigger="icon" />
           <NotificationBell />
         </div>
         <div className="p-4 lg:p-8 pt-20 lg:pt-2 space-y-4">

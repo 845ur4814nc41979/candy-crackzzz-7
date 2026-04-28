@@ -8,6 +8,7 @@ import { useAppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import PageLayout from '@/components/layout/PageLayout';
 import ProductCard from '@/components/ui/ProductCard';
+import CustomerDemoLink from '@/components/demo/CustomerDemoLink';
 import logoPath from "@assets/candy_crackzzz_2_1776628492110.png";
 
 export default function HomePage() {
@@ -95,6 +96,15 @@ export default function HomePage() {
             >
               <MessageCircle className="w-5 h-5 mr-2" /> ORDER HELPER
             </Button>
+          </motion.div>
+
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="mt-6"
+          >
+            <CustomerDemoLink tour="customer" label="Take the Tour" variant="pill" />
           </motion.div>
         </div>
       </section>

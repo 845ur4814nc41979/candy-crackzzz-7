@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { calculateEstimatedPoints, ensureRewardProfileReferralCode, generateReferralCode, listRewardTiers, normalizePhone, normalizeReferralCode } from '@/lib/rewards';
 import { apiNotifyOrder } from '@/lib/api';
 import ReferralShareButton from '@/components/referrals/ReferralShareButton';
+import CustomerDemoLink from '@/components/demo/CustomerDemoLink';
 
 export default function CartPage() {
   const [, setLocation] = useLocation();
@@ -273,7 +274,10 @@ export default function CartPage() {
   return (
     <PageLayout>
       <div className="container mx-auto px-4 py-8 md:py-16">
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-10 text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">CHECKOUT</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-10">
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">CHECKOUT</h1>
+          <CustomerDemoLink tour="checkout" label="How checkout works" variant="pill" />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-card rounded-3xl border border-border overflow-hidden">

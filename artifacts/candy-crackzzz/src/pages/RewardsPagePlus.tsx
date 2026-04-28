@@ -25,6 +25,7 @@ import {
   normalizeReferralCode,
 } from '@/lib/rewards';
 import ReferralShareButton from '@/components/referrals/ReferralShareButton';
+import CustomerDemoLink from '@/components/demo/CustomerDemoLink';
 import type { RewardProfile } from '@/types';
 
 const STORAGE_KEY = 'cc_rewards_lookup_phone';
@@ -286,6 +287,9 @@ export default function RewardsPagePlus() {
             <p className="text-muted-foreground font-bold max-w-2xl mx-auto">
               Track points and rewards on every order, or join the rewards program in seconds — your phone number is your account.
             </p>
+            <div className="flex justify-center pt-1">
+              <CustomerDemoLink tour="rewards" label="How rewards work" variant="pill" />
+            </div>
           </div>
 
           {/* Tabs */}

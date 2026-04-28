@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import SystemStatusCard from '@/components/admin/SystemStatusCard';
 import SiteAnalyticsCard from '@/components/admin/SiteAnalyticsCard';
+import AdminDemoLauncher from '@/components/demo/AdminDemoLauncher';
 
 export default function AdminDashboard() {
   const { products, orders, settings, rewardProfiles } = useAppContext();
@@ -26,7 +27,8 @@ export default function AdminDashboard() {
           <h1 className="text-4xl font-black uppercase tracking-tight mb-2">Dashboard</h1>
           <p className="text-muted-foreground font-bold">Welcome back to mission control.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <AdminDemoLauncher auto={false} trigger="text" />
           <Link href="/admin/products/new">
             <Button className="font-bold uppercase"><Package className="w-4 h-4 mr-2" /> Add Product</Button>
           </Link>
