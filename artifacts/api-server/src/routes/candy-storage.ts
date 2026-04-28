@@ -10,6 +10,7 @@ export type AdminRole =
   | "system_admin"
   | "campaign_admin"
   | "staff"
+  | "delivery_driver"
   | "viewer"
   | "employee";
 export type AdminUserStatus = "active" | "disabled";
@@ -21,6 +22,7 @@ export const ADMIN_ROLES: AdminRole[] = [
   "system_admin",
   "campaign_admin",
   "staff",
+  "delivery_driver",
   "viewer",
 ];
 
@@ -108,6 +110,9 @@ const ROLE_PERMISSIONS_SERVER: Record<Exclude<AdminRole, "employee">, AdminPermi
   staff: [
     "manageOrders", "viewOrders",
     "manageMessages", "viewMessages",
+  ],
+  delivery_driver: [
+    "manageOrders", "viewOrders",
   ],
   viewer: [
     "viewProducts",

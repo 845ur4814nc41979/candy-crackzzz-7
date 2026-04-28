@@ -88,7 +88,7 @@ export default function AdminTeam() {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   const sortedUsers = useMemo(() => {
-    const order = ['owner', 'site_admin', 'system_admin', 'campaign_admin', 'staff', 'employee', 'viewer'];
+    const order = ['owner', 'site_admin', 'system_admin', 'campaign_admin', 'staff', 'employee', 'delivery_driver', 'viewer'];
     return [...adminUsers].sort((a, b) => {
       const ai = order.indexOf(a.role);
       const bi = order.indexOf(b.role);
@@ -143,7 +143,7 @@ export default function AdminTeam() {
     if (wasOnlyOwner && role !== 'owner') {
       toast({
         title: 'Cannot change role',
-        description: 'Promote another admin to Owner first.',
+        description: 'Promote another admin to Builder first.',
         variant: 'destructive',
       });
       return;
@@ -165,7 +165,7 @@ export default function AdminTeam() {
     ) {
       toast({
         title: 'Cannot disable',
-        description: 'There must be at least one active owner.',
+        description: 'There must be at least one active Builder.',
         variant: 'destructive',
       });
       return;

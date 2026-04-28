@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, AlertCircle, Database, Mail, Phone, KeyRound, Send } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Database, Mail, Phone, KeyRound, Send, Sparkles, MapPin, Bell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -167,6 +167,50 @@ export default function SystemStatusCard() {
                   : `Missing: ${status.sms.missing.join(', ') || 'none'}`
               }
             />
+
+            {status.providers && (
+              <>
+                <div className="text-xs font-black uppercase tracking-wider text-muted-foreground pt-3">
+                  Future API Readiness
+                </div>
+                {status.providers.openai && (
+                  <StatusRow
+                    icon={<Sparkles className="w-4 h-4" />}
+                    label="OpenAI (smart writing)"
+                    ok={status.providers.openai.configured}
+                    detail={
+                      status.providers.openai.configured
+                        ? status.providers.openai.purpose ?? 'Configured.'
+                        : `Optional. Add ${status.providers.openai.missing.join(', ')} to enable.`
+                    }
+                  />
+                )}
+                {status.providers.googleMaps && (
+                  <StatusRow
+                    icon={<MapPin className="w-4 h-4" />}
+                    label="Google Maps"
+                    ok={status.providers.googleMaps.configured}
+                    detail={
+                      status.providers.googleMaps.configured
+                        ? status.providers.googleMaps.purpose ?? 'Configured.'
+                        : `Optional. Add ${status.providers.googleMaps.missing.join(', ')} to enable.`
+                    }
+                  />
+                )}
+                {status.providers.push && (
+                  <StatusRow
+                    icon={<Bell className="w-4 h-4" />}
+                    label="Push notifications"
+                    ok={status.providers.push.configured}
+                    detail={
+                      status.providers.push.configured
+                        ? status.providers.push.purpose ?? 'Configured.'
+                        : `Optional. Add ${status.providers.push.missing.join(', ')} to enable.`
+                    }
+                  />
+                )}
+              </>
+            )}
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button

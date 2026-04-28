@@ -80,9 +80,9 @@ export default function HomePage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto px-4"
           >
-            <Link href="/menu" className="w-full sm:w-auto" data-testid="link-overview-browse-menu">
+            <Link href="/menu" className="w-full sm:w-auto" data-testid="link-order-menu">
               <Button size="lg" className="w-full sm:w-auto text-lg font-black px-10 py-8 rounded-full shadow-[0_0_20px_rgba(255,0,255,0.5)] hover:shadow-[0_0_40px_rgba(255,0,255,0.8)] transition-all duration-300 hover:scale-105 border-2 border-primary-foreground/20">
-                OVERVIEW / BROWSE MENU
+                ORDER / MENU
               </Button>
             </Link>
             <Button
@@ -189,6 +189,14 @@ export default function HomePage() {
                           <Star key={j} className={`w-5 h-5 ${j < review.rating ? 'fill-current' : 'opacity-20'}`} />
                         ))}
                       </div>
+                      {review.imageBase64 && (
+                        <img
+                          src={review.imageBase64}
+                          alt={`${review.customerName} review photo`}
+                          className="w-full max-h-56 object-cover rounded-xl border border-border mb-4"
+                          data-testid={`img-review-${review.id}`}
+                        />
+                      )}
                       <p className="text-lg italic font-medium mb-5">"{review.text}"</p>
                       <p className="font-black uppercase tracking-wider text-muted-foreground">— {review.customerName}</p>
                     </CardContent>

@@ -27,6 +27,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminProductForm from "@/pages/admin/AdminProductForm";
 import AdminOrders from "@/pages/admin/AdminOrdersReferralBadges";
+import AdminDeliveries from "@/pages/admin/AdminDeliveries";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminRewards from "@/pages/admin/AdminRewards";
 import AdminMerch from "@/pages/admin/AdminMerch";
@@ -75,6 +76,9 @@ function Router() {
       </Route>
       <Route path="/admin/orders">
         {() => <ProtectedRoute requireAnyPermission={['manageOrders', 'viewOrders']}><AdminOrders /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/deliveries">
+        {() => <ProtectedRoute requireAnyPermission={['manageOrders', 'viewOrders']}><AdminDeliveries /></ProtectedRoute>}
       </Route>
       <Route path="/admin/settings">
         {() => <ProtectedRoute requireAnyPermission={['manageSiteSettings', 'manageSystemSettings']}><AdminSettings /></ProtectedRoute>}

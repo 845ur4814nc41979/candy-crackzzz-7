@@ -52,8 +52,8 @@ export default function ReferralShareButton({
   const [pageUrl, setPageUrl] = useState('');
 
   useEffect(() => {
-    setPageUrl(getReferralShareUrl());
-  }, []);
+    setPageUrl(getReferralShareUrl(code));
+  }, [code]);
 
   const shareSettings = useMemo<Pick<
     Settings,

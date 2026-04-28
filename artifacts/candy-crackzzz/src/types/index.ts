@@ -70,6 +70,18 @@ export interface OrderRequest {
   referralReferrerPointsAwarded?: number;
   referralReferredCustomerPointsAwarded?: number;
   referralAwardedAt?: string;
+  /** Phone-keyed reward profile id captured at checkout, if any. */
+  rewardsProfileId?: string;
+  /** Points the customer requested to redeem at checkout. */
+  rewardsRedeemedPoints?: number;
+  /** Dollar discount applied from redeemed points. */
+  rewardsDiscountAmount?: number;
+  /** Lifecycle of the redemption: pending until completion, then applied or cancelled. */
+  rewardsRedemptionStatus?: 'pending' | 'applied' | 'cancelled';
+  /** When the customer attached the redemption at checkout. */
+  rewardsAppliedAt?: string;
+  /** When the redemption was finalized (points actually deducted on completion). */
+  rewardsRedeemedAt?: string;
   total: number;
   createdAt: string;
 }
@@ -88,6 +100,7 @@ export interface Review {
   createdAt: string;
   status: 'pending' | 'approved' | 'hidden';
   isFeatured: boolean;
+  imageBase64?: string;
 }
 
 export interface AdminAccount {
@@ -101,6 +114,7 @@ export type AdminRole =
   | 'system_admin'
   | 'campaign_admin'
   | 'staff'
+  | 'delivery_driver'
   | 'viewer'
   | 'employee';
 export type AdminUserStatus = 'active' | 'disabled';

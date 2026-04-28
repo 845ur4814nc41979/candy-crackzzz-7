@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap, Users } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap, Users, Truck } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -30,6 +30,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { href: '/admin/products', icon: Package, label: 'Products', permissions: ['manageProducts', 'viewProducts'] },
     { href: '/admin/merch', icon: Shirt, label: 'Merch', permissions: ['manageMerch', 'viewMerch'] },
     { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', permissions: ['manageOrders', 'viewOrders'] },
+    { href: '/admin/deliveries', icon: Truck, label: 'Deliveries', permissions: ['manageOrders', 'viewOrders'] },
     { href: '/admin/messages', icon: Mail, label: 'Messages', permissions: ['manageMessages', 'viewMessages'] },
     { href: '/admin/reviews', icon: Star, label: 'Reviews', badge: pendingReviews > 0 ? pendingReviews : undefined, permissions: ['manageSiteSettings'] },
     { href: '/admin/rewards', icon: Gift, label: 'Rewards', permissions: ['manageRewards', 'viewRewards'] },
@@ -135,9 +136,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div className="bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-2xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <div className="font-black uppercase tracking-wider text-sm">Temporary Owner Password</div>
+                <div className="font-black uppercase tracking-wider text-sm">Temporary Builder Password</div>
                 <p className="text-sm font-bold mt-1">
-                  You are signed in with the seeded owner account. Change the username and password from Account and Security before going live.
+                  You are signed in with the seeded builder account. Change the username and password from Account and Security before going live.
                 </p>
               </div>
               <Link href="/admin/account">

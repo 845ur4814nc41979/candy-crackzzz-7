@@ -273,11 +273,19 @@ export interface ProviderStatusEntry {
   missing: string[];
   [key: string]: unknown;
 }
+export interface OptionalProviderStatusEntry extends ProviderStatusEntry {
+  purpose?: string;
+}
 export interface SystemStatus {
   database: { connected: boolean; kind: string };
   session: { sessionSecretConfigured: boolean; adminUsernameConfigured: boolean; adminPasswordConfigured: boolean };
   email: ProviderStatusEntry;
   sms: ProviderStatusEntry;
+  providers?: {
+    openai?: OptionalProviderStatusEntry;
+    googleMaps?: OptionalProviderStatusEntry;
+    push?: OptionalProviderStatusEntry;
+  };
   businessName: string | null;
 }
 
