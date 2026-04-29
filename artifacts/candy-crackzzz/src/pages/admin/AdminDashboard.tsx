@@ -1,7 +1,9 @@
-import { Link } from 'wouter';
-import { Package, ShoppingCart, AlertCircle, DollarSign, Gift, Users } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Package, ShoppingCart, AlertCircle, DollarSign, Gift, Users, CalendarDays, CalendarRange, CalendarClock, CheckCircle2, Receipt } from 'lucide-react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useAppContext } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,11 +13,39 @@ import AdminDemoLauncher from '@/components/demo/AdminDemoLauncher';
 
 export default function AdminDashboard() {
   const { products, orders, settings, rewardProfiles } = useAppContext();
+  const { currentUser } = useAuth();
+  const [, navigate] = useLocation();
+
+  // Delivery drivers should land directly on the delivery dashboard.
+  useEffect(() => {
+    if (currentUser?.role === 'delivery_driver') {
+      navigate('/admin/deliveries');
+    }
+  }, [currentUser?.role, navigate]);
 
   const activeOrders = orders.filter(o => !['completed', 'cancelled'].includes(o.status));
   const pendingOrders = orders.filter(o => o.status === 'new' || o.status === 'pending');
+  const completedOrders = useMemo(() => orders.filter(o => o.status === 'completed'), [orders]);
   const soldOutProducts = products.filter(p => p.isSoldOut);
-  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total, 0);
+  const totalRevenue = completedOrders.reduce((sum, o) => sum + o.total, 0);
+  const aov = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
+
+  const { revToday, revWeek, revMonth } = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfWeek = startOfToday - now.getDay() * 24 * 60 * 60 * 1000;
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let today = 0, week = 0, month = 0;
+    for (const o of completedOrders) {
+      const ts = new Date(o.createdAt).getTime();
+      if (Number.isNaN(ts)) continue;
+      if (ts >= startOfToday) today += o.total;
+      if (ts >= startOfWeek) week += o.total;
+      if (ts >= startOfMonth) month += o.total;
+    }
+    return { revToday: today, revWeek: week, revMonth: month };
+  }, [completedOrders]);
+
   const referralOrders = orders.filter(o => !!o.referralCodeUsed).length;
   const referralPoints = rewardProfiles.reduce((sum, p) => sum + (p.lifetimeReferralPointsEarned ?? 0), 0);
   const showAnalyticsCard = settings.analyticsEnabled !== false && settings.analyticsShowDashboardCard !== false;
@@ -38,14 +68,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="bg-card border-border">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="w-14 h-14 bg-primary/20 text-primary rounded-2xl flex items-center justify-center">
               <ShoppingCart className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Active Orders</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Active Orderzzz</p>
               <h3 className="text-3xl font-black">{activeOrders.length}</h3>
             </div>
           </CardContent>
@@ -57,7 +87,7 @@ export default function AdminDashboard() {
               <AlertCircle className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">New Requests</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">New Requestzzz</p>
               <h3 className="text-3xl font-black">{pendingOrders.length}</h3>
             </div>
           </CardContent>
@@ -69,7 +99,7 @@ export default function AdminDashboard() {
               <Package className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Total Products</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Productzzz</p>
               <h3 className="text-3xl font-black">{products.length}</h3>
             </div>
           </CardContent>
@@ -77,12 +107,74 @@ export default function AdminDashboard() {
 
         <Card className="bg-card border-border">
           <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center" data-testid="dashboard-card-completed-orders">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Completed Orderzzz</p>
+              <h3 className="text-3xl font-black">{completedOrders.length}</h3>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
+        <Card className="bg-card border-border" data-testid="dashboard-card-revenue-today">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-14 h-14 bg-green-500/20 text-green-500 rounded-2xl flex items-center justify-center">
+              <CalendarDays className="w-7 h-7" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Today's Rev</p>
+              <h3 className="text-3xl font-black">${revToday.toFixed(2)}</h3>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border" data-testid="dashboard-card-revenue-week">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-14 h-14 bg-green-500/20 text-green-500 rounded-2xl flex items-center justify-center">
+              <CalendarRange className="w-7 h-7" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">This Week</p>
+              <h3 className="text-3xl font-black">${revWeek.toFixed(2)}</h3>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border" data-testid="dashboard-card-revenue-month">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-14 h-14 bg-green-500/20 text-green-500 rounded-2xl flex items-center justify-center">
+              <CalendarClock className="w-7 h-7" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">This Month</p>
+              <h3 className="text-3xl font-black">${revMonth.toFixed(2)}</h3>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border" data-testid="dashboard-card-revenue-all-time">
+          <CardContent className="p-6 flex items-center gap-4">
             <div className="w-14 h-14 bg-green-500/20 text-green-500 rounded-2xl flex items-center justify-center">
               <DollarSign className="w-7 h-7" />
             </div>
             <div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">All-Time Rev</p>
               <h3 className="text-3xl font-black">${totalRevenue.toFixed(2)}</h3>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border" data-testid="dashboard-card-aov">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-14 h-14 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center">
+              <Receipt className="w-7 h-7" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Avg Order Value</p>
+              <h3 className="text-3xl font-black">${aov.toFixed(2)}</h3>
             </div>
           </CardContent>
         </Card>

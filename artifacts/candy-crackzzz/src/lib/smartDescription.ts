@@ -6,6 +6,8 @@ const PRODUCT_CATEGORY_NOUN: Record<ProductCategory, string> = {
   'party-trays': 'party tray',
   'seasonal': 'seasonal candy creation',
   'custom': 'custom candy creation',
+  'donutzzz': 'candy-cracked donut',
+  'dirty-sodazzz': 'dirty soda',
 };
 
 const PRODUCT_CATEGORY_VIBE: Record<ProductCategory, string[]> = {
@@ -33,6 +35,16 @@ const PRODUCT_CATEGORY_VIBE: Record<ProductCategory, string[]> = {
     'Built to order around your event, colors, and flavors.',
     'Tell us the vibe — we build the tray.',
     'Made-to-order so every bite matches your theme.',
+  ],
+  'donutzzz': [
+    'Pillow-soft donut hugged by a candy-crack glaze.',
+    'Bakery-fresh donut with a sugar-shell snap.',
+    'Sweet, glossy, and built for sharing.',
+  ],
+  'dirty-sodazzz': [
+    'Bold soda blended with cream, fruit, and a candy-rim cup.',
+    'Fizz, cream, and fruit in a single loud sip.',
+    'Tropical-meets-classic dirty soda, served ice cold.',
   ],
 };
 

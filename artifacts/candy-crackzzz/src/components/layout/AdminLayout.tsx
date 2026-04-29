@@ -26,24 +26,30 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const pendingReviews = reviews.filter(r => r.status === 'pending').length;
 
+  const isDriverOnly = currentUser?.role === 'delivery_driver';
+
   const navItems: NavItem[] = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/products', icon: Package, label: 'Products', permissions: ['manageProducts', 'viewProducts'] },
+    { href: '/admin/products', icon: Package, label: 'Productzzz', permissions: ['manageProducts', 'viewProducts'] },
     { href: '/admin/merch', icon: Shirt, label: 'Merch', permissions: ['manageMerch', 'viewMerch'] },
-    { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', permissions: ['manageOrders', 'viewOrders'] },
-    { href: '/admin/deliveries', icon: Truck, label: 'Deliveries', permissions: ['manageOrders', 'viewOrders'] },
-    { href: '/admin/messages', icon: Mail, label: 'Messages', permissions: ['manageMessages', 'viewMessages'] },
-    { href: '/admin/reviews', icon: Star, label: 'Reviews', badge: pendingReviews > 0 ? pendingReviews : undefined, permissions: ['manageSiteSettings'] },
-    { href: '/admin/rewards', icon: Gift, label: 'Rewards', permissions: ['manageRewards', 'viewRewards'] },
-    { href: '/admin/campaigns', icon: Zap, label: 'Campaigns', permissions: ['manageCampaigns', 'viewCampaigns'] },
-    { href: '/admin/settings', icon: Settings, label: 'Settings', permissions: ['manageSiteSettings', 'manageSystemSettings'] },
+    { href: '/admin/orders', icon: ShoppingCart, label: 'Orderzzz', permissions: ['manageOrders', 'viewOrders'] },
+    { href: '/admin/deliveries', icon: Truck, label: 'Deliveryzzz', permissions: ['manageOrders', 'viewOrders'] },
+    { href: '/admin/messages', icon: Mail, label: 'Messagezzz', permissions: ['manageMessages', 'viewMessages'] },
+    { href: '/admin/reviews', icon: Star, label: 'Reviewzzz', badge: pendingReviews > 0 ? pendingReviews : undefined, permissions: ['manageSiteSettings'] },
+    { href: '/admin/rewards', icon: Gift, label: 'Rewardzzz', permissions: ['manageRewards', 'viewRewards'] },
+    { href: '/admin/campaigns', icon: Zap, label: 'Campaignzzz', permissions: ['manageCampaigns', 'viewCampaigns'] },
+    { href: '/admin/settings', icon: Settings, label: 'Settingzzz', permissions: ['manageSiteSettings', 'manageSystemSettings'] },
     { href: '/admin/branding', icon: Palette, label: 'Branding', permissions: ['manageBranding'] },
-    { href: '/admin/payments', icon: CreditCard, label: 'Payments', permissions: ['managePayments'] },
+    { href: '/admin/payments', icon: CreditCard, label: 'Paymentzzz', permissions: ['managePayments'] },
     { href: '/admin/team', icon: Users, label: 'Team', permissions: ['manageAdmins'] },
     { href: '/admin/account', icon: ShieldCheck, label: 'Account' },
   ];
 
+  // Delivery drivers should only see the deliveries area + their account.
+  const driverOnlyHrefs = new Set(['/admin', '/admin/deliveries', '/admin/account']);
+
   const visibleNavItems = navItems.filter((item) => {
+    if (isDriverOnly && !driverOnlyHrefs.has(item.href)) return false;
     if (!item.permissions || item.permissions.length === 0) return true;
     return userHasAnyPermission(currentUser, item.permissions);
   });

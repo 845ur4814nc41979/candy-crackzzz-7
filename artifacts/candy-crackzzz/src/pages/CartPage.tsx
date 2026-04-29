@@ -153,10 +153,17 @@ export default function CartPage() {
     const submittedAt = new Date().toISOString();
     const redemptionAtSubmit = appliedRedemption && appliedTierStillValid ? appliedRedemption : null;
 
+    // If the customer typed a referral code, use that; otherwise carry forward
+    // the referral code the matched profile already signed up with so the
+    // referrer still gets credit on the customer's first completed order.
+    const typedReferralCode = normalizeReferralCode(formData.referralCodeUsed);
+    const referralCodeForOrder = typedReferralCode
+      || normalizeReferralCode(matchedRewardProfile?.referredByCode || '');
+
     const newOrder: OrderRequest = {
       id: `ORD-${(globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)).slice(0, 8).toUpperCase()}`,
       ...formData,
-      referralCodeUsed: normalizeReferralCode(formData.referralCodeUsed),
+      referralCodeUsed: referralCodeForOrder,
       pickupOrDelivery: formData.pickupOrDelivery as 'pickup' | 'delivery',
       items: cart.map(item => ({ productId: item.productId, name: item.name, quantity: item.quantity, price: item.price })),
       status: 'new',

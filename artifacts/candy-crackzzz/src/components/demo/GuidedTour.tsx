@@ -42,7 +42,7 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-stretch md:items-center justify-center md:p-4 bg-black/70 backdrop-blur-sm overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="guided-tour-title"
@@ -50,10 +50,14 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl shadow-primary/20 overflow-hidden"
+        className="relative w-full md:max-w-md bg-card border-0 md:border md:border-border rounded-none md:rounded-3xl shadow-2xl shadow-primary/20 flex flex-col h-[100dvh] md:h-auto md:max-h-[90dvh] overflow-hidden"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-6 pt-6 pb-4 border-b border-border bg-gradient-to-br from-primary/15 via-card to-secondary/10">
+        <div className="px-5 md:px-6 pt-5 md:pt-6 pb-4 border-b border-border bg-gradient-to-br from-primary/15 via-card to-secondary/10 shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -88,7 +92,7 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
           </div>
         </div>
 
-        <div className="px-6 py-5 space-y-3 max-h-[60dvh] overflow-y-auto">
+        <div className="px-5 md:px-6 py-5 space-y-3 flex-1 min-h-0 overflow-y-auto">
           <div>
             <h3 className="font-black text-xl text-foreground mb-2" data-testid="tour-step-title">
               {step.title}
@@ -106,7 +110,7 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-border flex items-center justify-between gap-3 bg-background/40">
+        <div className="px-5 md:px-6 py-4 border-t border-border flex items-center justify-between gap-3 bg-background/40 sticky bottom-0 shrink-0">
           <Button
             type="button"
             variant="ghost"

@@ -1,4 +1,4 @@
-export type ProductCategory = 'candy-grapes' | 'candy-pineapple' | 'party-trays' | 'seasonal' | 'custom';
+export type ProductCategory = 'candy-grapes' | 'candy-pineapple' | 'party-trays' | 'seasonal' | 'custom' | 'donutzzz' | 'dirty-sodazzz';
 export type OrderStatus = 'new' | 'pending' | 'confirmed' | 'ready' | 'picked-up' | 'completed' | 'cancelled';
 
 export interface Product {
@@ -268,6 +268,12 @@ export interface Settings {
   enableGallery: boolean;
   enableFeaturedSection: boolean;
   enableMerch: boolean;
+  enableDonutzzz: boolean;
+  showDonutzzzOnHome: boolean;
+  showDonutzzzInMenu: boolean;
+  enableDirtySodazzz: boolean;
+  showDirtySodazzzOnHome: boolean;
+  showDirtySodazzzInMenu: boolean;
   enablePickup: boolean;
   enableDelivery: boolean;
   directionsEnabled: boolean;

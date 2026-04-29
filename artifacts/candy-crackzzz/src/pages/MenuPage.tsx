@@ -19,6 +19,8 @@ export default function MenuPage() {
     { id: 'candy-grapes', label: 'Candy Grapes' },
     { id: 'candy-pineapple', label: 'Candy Pineapple' },
     { id: 'party-trays', label: 'Party Trays' },
+    ...(settings.enableDonutzzz && settings.showDonutzzzInMenu ? [{ id: 'donutzzz', label: 'Donutzzz' }] : []),
+    ...(settings.enableDirtySodazzz && settings.showDirtySodazzzInMenu ? [{ id: 'dirty-sodazzz', label: 'Dirty Sodazzz' }] : []),
     ...(settings.enableSeasonalSection ? [{ id: 'seasonal', label: 'Seasonal' }] : []),
     ...(settings.enableCustomOrders ? [{ id: 'custom', label: 'Custom Orders' }] : [])
   ];

@@ -27,6 +27,12 @@ export default function HomePage() {
 
   const featuredProducts = products.filter(p => p.isFeatured && p.isVisible).slice(0, 4);
   const seasonalProducts = products.filter(p => p.isSeasonal && p.isVisible).slice(0, 4);
+  const donutzzzProducts = products.filter(p => p.category === 'donutzzz' && p.isVisible).slice(0, 4);
+  const dirtySodazzzProducts = products.filter(p => p.category === 'dirty-sodazzz' && p.isVisible).slice(0, 4);
+  const showDonutzzzSection =
+    settings.enableDonutzzz && settings.showDonutzzzOnHome && donutzzzProducts.length > 0;
+  const showDirtySodazzzSection =
+    settings.enableDirtySodazzz && settings.showDirtySodazzzOnHome && dirtySodazzzProducts.length > 0;
 
   const displayReviews = (() => {
     const featured = reviews.filter(r => r.status === 'approved' && r.isFeatured);
@@ -141,6 +147,68 @@ export default function HomePage() {
               <Link href="/menu" className="inline-flex items-center gap-2 font-bold text-primary uppercase tracking-wider">
                 View All Menu Items <ArrowRight className="w-5 h-5" />
               </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Donutzzz */}
+      {showDonutzzzSection && (
+        <section className="py-20 md:py-24 bg-background border-y border-border" data-testid="section-donutzzz">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-end mb-10">
+              <div>
+                <Badge className="bg-pink-500/20 text-pink-300 border border-pink-500/40 font-black uppercase tracking-wider mb-3">Fresh Drop</Badge>
+                <h2 className="text-4xl md:text-5xl font-black text-foreground mb-2">DONUTZZZ</h2>
+                <p className="text-xl text-primary font-bold">Glazed, sprinkled, candy-cracked donuts.</p>
+              </div>
+              <Link href="/menu" className="hidden md:flex items-center gap-2 font-bold hover:text-primary transition-colors uppercase tracking-wider">
+                See All <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {donutzzzProducts.map((product, i) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Dirty Sodazzz */}
+      {showDirtySodazzzSection && (
+        <section className="py-20 md:py-24 bg-card border-y border-border" data-testid="section-dirty-sodazzz">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-end mb-10">
+              <div>
+                <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black uppercase tracking-wider mb-3">Sip Zone</Badge>
+                <h2 className="text-4xl md:text-5xl font-black text-foreground mb-2">DIRTY SODAZZZ</h2>
+                <p className="text-xl text-secondary font-bold">Cream, fruit, fizz — built bold.</p>
+              </div>
+              <Link href="/menu" className="hidden md:flex items-center gap-2 font-bold hover:text-secondary transition-colors uppercase tracking-wider">
+                See All <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {dirtySodazzzProducts.map((product, i) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>

@@ -216,6 +216,12 @@ export default function AdminSettings() {
                 { key: 'enableGallery', label: 'Photo Gallery Page' },
                 { key: 'enableFeaturedSection', label: 'Homepage Featured Section' },
                 { key: 'enableMerch', label: 'Merch Shop Page' },
+                { key: 'enableDonutzzz', label: 'Donutzzz Section' },
+                { key: 'showDonutzzzOnHome', label: 'Show Donutzzz on Homepage' },
+                { key: 'showDonutzzzInMenu', label: 'Show Donutzzz in Menu' },
+                { key: 'enableDirtySodazzz', label: 'Dirty Sodazzz Section' },
+                { key: 'showDirtySodazzzOnHome', label: 'Show Dirty Sodazzz on Homepage' },
+                { key: 'showDirtySodazzzInMenu', label: 'Show Dirty Sodazzz in Menu' },
               ].map(toggle => (
                 <div key={toggle.key} className="flex items-center justify-between p-3 border-b border-border last:border-0">
                   <Label className="font-bold">{toggle.label}</Label>
