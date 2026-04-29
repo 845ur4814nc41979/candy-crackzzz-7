@@ -358,21 +358,37 @@ export const sampleProducts: unknown[] = [
     description: "A totally custom tray tailored to your birthday theme and colors.", shortDescription: "Custom tray for birthdays.",
     price: null, imageUrl: "/images/birthday-tray.png", flavorNotes: "Custom", colorThemeNotes: "Custom",
     isAvailable: true, isFeatured: false, isSeasonal: false, isCustomEligible: true, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
-  { id: "donut-1", name: "Glazed Crackzzz Donut", slug: "glazed-crackzzz-donut", category: "donutzzz",
-    description: "Classic ring donut with our signature candy-glaze drip and crunchy sugar shell.", shortDescription: "Sweet glazed donut with candy crunch.",
-    price: 4, imageUrl: "/images/donut-glazed.png", flavorNotes: "Vanilla glaze", colorThemeNotes: "Pink/Cream",
+  { id: "donut-1", name: "Candy Crunch Mini Donutzzz", slug: "candy-crunch-mini-donutzzz", category: "donutzzz",
+    description: "Mini fried donuts drenched in chocolate glaze and loaded with crushed candy, cookies, and rainbow gems.", shortDescription: "Chocolate-glazed mini donuts with candy crunch.",
+    price: 12, imageUrl: "/images/stock/candy-crunch-mini-donutzzz.png", flavorNotes: "Chocolate, mixed candy", colorThemeNotes: "Rainbow",
+    isAvailable: true, isFeatured: true, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
+  { id: "donut-2", name: "Strawberry Gummy Mini Donutzzz", slug: "strawberry-gummy-mini-donutzzz", category: "donutzzz",
+    description: "Pink strawberry-glazed mini donuts with a marshmallow drizzle, white chocolate chips, and crushed gummies.", shortDescription: "Pink-glazed mini donuts with gummies.",
+    price: 12, imageUrl: "/images/stock/strawberry-gummy-mini-donutzzz.png", flavorNotes: "Strawberry glaze, gummies", colorThemeNotes: "Pink",
+    isAvailable: true, isFeatured: true, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
+  { id: "donut-3", name: "Blue Raspberry Rock Candy Donutzzz", slug: "blue-raspberry-rock-candy-donutzzz", category: "donutzzz",
+    description: "Blue raspberry-glazed donuts topped with shattered pink and blue rock candy and a creamy drizzle.", shortDescription: "Blue glazed donuts with rock candy.",
+    price: 13, imageUrl: "/images/stock/blue-raspberry-rock-candy-donutzzz.png", flavorNotes: "Blue raspberry, rock candy", colorThemeNotes: "Blue/Pink",
     isAvailable: true, isFeatured: false, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
-  { id: "donut-2", name: "Birthday Cake Donutzzz Box", slug: "birthday-cake-donutzzz-box", category: "donutzzz",
-    description: "Half-dozen birthday cake donuts loaded with rainbow sprinkles and a candy-crack shell.", shortDescription: "6-pack of party-ready donuts.",
-    price: 18, imageUrl: "/images/donut-box.png", flavorNotes: "Birthday cake, sprinkles", colorThemeNotes: "Rainbow",
+  { id: "donut-4", name: "Chocolate Cookie Crunch Donutzzz", slug: "chocolate-cookie-crunch-donutzzz", category: "donutzzz",
+    description: "Caramel-chocolate donuts piled with crushed cookies, candy pearls, and a chocolate drizzle.", shortDescription: "Chocolate donuts with cookie crunch.",
+    price: 13, imageUrl: "/images/stock/chocolate-cookie-crunch-donutzzz.png", flavorNotes: "Chocolate, caramel, cookies", colorThemeNotes: "Brown/Multi",
+    isAvailable: true, isFeatured: false, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
+  { id: "soda-1", name: "Strawberry Cream Dirty Sodazzz", slug: "strawberry-cream-dirty-sodazzz", category: "dirty-sodazzz",
+    description: "Lemon-lime soda blended with strawberry puree, half-and-half, and topped with whipped cream and pink candy crumble.", shortDescription: "Creamy pink strawberry dirty soda.",
+    price: 7, imageUrl: "/images/stock/strawberry-cream-dirty-sodazzz.png", flavorNotes: "Strawberry, cream, lime", colorThemeNotes: "Pink",
     isAvailable: true, isFeatured: true, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
-  { id: "soda-1", name: "Strawberry Cream Dirty Soda", slug: "strawberry-cream-dirty-soda", category: "dirty-sodazzz",
-    description: "Lemon-lime soda blended with strawberry puree, half-and-half, and a candy-rim cup.", shortDescription: "Creamy strawberry-lime soda.",
-    price: 7, imageUrl: "/images/soda-strawberry.png", flavorNotes: "Strawberry, cream, lime", colorThemeNotes: "Pink",
+  { id: "soda-2", name: "Tropical Lime Pineapple Dirty Sodazzz", slug: "tropical-lime-pineapple-dirty-sodazzz", category: "dirty-sodazzz",
+    description: "Lime soda mixed with pineapple puree and coconut cream, garnished with fresh pineapple and lime.", shortDescription: "Tropical lime + pineapple dirty soda.",
+    price: 7, imageUrl: "/images/stock/tropical-lime-pineapple-dirty-sodazzz.png", flavorNotes: "Lime, pineapple, coconut cream", colorThemeNotes: "Yellow/Green",
     isAvailable: true, isFeatured: true, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
-  { id: "soda-2", name: "Coconut Mango Dirty Soda", slug: "coconut-mango-dirty-soda", category: "dirty-sodazzz",
-    description: "Cream soda with mango puree, coconut cream, and a sugar-crystal rim. Tropical and bold.", shortDescription: "Tropical cream soda blend.",
-    price: 7, imageUrl: "/images/soda-mango.png", flavorNotes: "Mango, coconut cream", colorThemeNotes: "Yellow/White",
+  { id: "soda-3", name: "Blue Raspberry Dirty Sodazzz", slug: "blue-raspberry-dirty-sodazzz", category: "dirty-sodazzz",
+    description: "Bold blue raspberry soda topped with vanilla cream, fresh raspberries, and a rock candy stick.", shortDescription: "Bold blue raspberry cream soda.",
+    price: 7, imageUrl: "/images/stock/blue-raspberry-dirty-sodazzz.png", flavorNotes: "Blue raspberry, vanilla cream", colorThemeNotes: "Blue",
+    isAvailable: true, isFeatured: false, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
+  { id: "soda-4", name: "Dirty Dr Pepper Sodazzz", slug: "dirty-dr-pepper-sodazzz", category: "dirty-sodazzz",
+    description: "Smooth Dr Pepper over ice swirled with vanilla cream and a splash of cherry. The ultimate dirty soda indulgence.", shortDescription: "Dr Pepper, vanilla cream, cherry.",
+    price: 8, imageUrl: "/images/stock/dirty-dr-pepper-sodazzz.png", flavorNotes: "Dr Pepper, vanilla, cherry", colorThemeNotes: "Dark/Red",
     isAvailable: true, isFeatured: false, isSeasonal: false, isCustomEligible: false, isSoldOut: false, isVisible: true, createdAt: new Date().toISOString() },
 ];
 
@@ -448,17 +464,43 @@ function freshDefaultDb(): PersistedDb {
 
 function mergeWithDefaults(parsed: Partial<PersistedDb>): PersistedDb {
   const defaults = freshDefaultDb();
+  // One-time top-up: when an existing install has products but is missing the
+  // newer Donutzzz / Dirty Sodazzz sample items, add the missing seed items so
+  // the new sections have stock images out of the box. The
+  // `seededExtraSampleSections` settings flag prevents re-seeding after an
+  // admin intentionally deletes them.
+  let topedUpProducts: unknown[] | null = null;
+  const parsedProducts = Array.isArray(parsed.state?.products) ? parsed.state!.products : null;
+  const parsedSettings =
+    (parsed.state?.settings as Record<string, unknown> | undefined) ?? {};
+  const alreadySeededExtras = parsedSettings["seededExtraSampleSections"] === true;
+  if (parsedProducts && parsedProducts.length > 0 && !alreadySeededExtras) {
+    const existingIds = new Set(
+      parsedProducts
+        .map((p) => (p as { id?: unknown })?.id)
+        .filter((id): id is string => typeof id === "string"),
+    );
+    const additions = (defaults.state.products as Array<{ id: string; category?: string }>).filter(
+      (p) =>
+        (p.category === "donutzzz" || p.category === "dirty-sodazzz") &&
+        !existingIds.has(p.id),
+    );
+    if (additions.length > 0) {
+      topedUpProducts = [...parsedProducts, ...additions];
+    }
+  }
   return {
     version: 1,
     state: {
       products:
         Array.isArray(parsed.state?.products) && parsed.state!.products.length > 0
-          ? parsed.state!.products
+          ? (topedUpProducts ?? parsed.state!.products)
           : defaults.state.products,
       orders: Array.isArray(parsed.state?.orders) ? parsed.state!.orders : [],
       settings: {
         ...defaults.state.settings,
         ...((parsed.state?.settings as Record<string, unknown>) ?? {}),
+        seededExtraSampleSections: true,
       },
       reviews: Array.isArray(parsed.state?.reviews) ? parsed.state!.reviews : [],
       rewardProfiles: Array.isArray(parsed.state?.rewardProfiles)
