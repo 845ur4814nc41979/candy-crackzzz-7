@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Trash2, ArrowRight } from 'lucide-react';
+import { Trash2, ArrowRight, Gift, Check } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { OrderRequest } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { calculateEstimatedPoints, ensureRewardProfileReferralCode, generateReferralCode, normalizePhone, normalizeReferralCode } from '@/lib/rewards';
+import { calculateEstimatedPoints, ensureRewardProfileReferralCode, generateReferralCode, listRewardTiers, normalizePhone, normalizeReferralCode } from '@/lib/rewards';
 import { apiNotifyOrder } from '@/lib/api';
 import ReferralShareButton from '@/components/referrals/ReferralShareButton';
+import CustomerDemoLink from '@/components/demo/CustomerDemoLink';
 
 export default function CartPage() {
   const [, setLocation] = useLocation();
@@ -73,9 +74,14 @@ export default function CartPage() {
 
   const handleInputChange = (field: string, value: string) => setFormData(prev => ({ ...prev, [field]: value }));
 
+  // Selected redemption (points -> dollars) the customer wants to apply at checkout.
+  const [appliedRedemption, setAppliedRedemption] = useState<{ points: number; discount: number } | null>(null);
+
   const normalizedPhone = normalizePhone(formData.phone);
   const deliveryFee = formData.pickupOrDelivery === 'delivery' && settings.deliveryFeeEnabled ? settings.deliveryFeeAmount : 0;
-  const finalTotal = cartTotal + deliveryFee;
+  const grossTotal = cartTotal + deliveryFee;
+  const rewardsDiscountApplied = appliedRedemption ? Math.min(appliedRedemption.discount, grossTotal) : 0;
+  const finalTotal = Math.max(0, grossTotal - rewardsDiscountApplied);
 
   const matchedRewardProfile = useMemo(
     () => rewardProfiles.find(profile => normalizePhone(profile.phone) === normalizedPhone),
@@ -106,6 +112,36 @@ export default function CartPage() {
     [settings, finalTotal, formData.rewardsOptIn, matchedRewardProfile],
   );
 
+  // All redemption tiers (irrespective of customer balance) for the Apply
+  // Rewards UI. Each tier is checked against:
+  //   - has a matched rewards profile with enough current points
+  //   - the discount fits in the current cart total (no negative totals)
+  //   - rewards are enabled in settings
+  const redemptionTiers = useMemo(() => listRewardTiers(settings), [settings]);
+  const currentPointsBalance = matchedRewardProfile?.currentPoints ?? 0;
+  const canShowRedemptionPanel =
+    settings.enableRewards &&
+    !!formData.rewardsOptIn &&
+    !!matchedRewardProfile &&
+    redemptionTiers.length > 0 &&
+    grossTotal > 0;
+
+  // If the cart shrinks below an applied redemption, drop it automatically.
+  // Same for switching customers (different points balance) or opting out.
+  const appliedTierStillValid = useMemo(() => {
+    if (!appliedRedemption) return true;
+    if (!canShowRedemptionPanel) return false;
+    return (
+      currentPointsBalance >= appliedRedemption.points &&
+      grossTotal >= appliedRedemption.discount
+    );
+  }, [appliedRedemption, canShowRedemptionPanel, currentPointsBalance, grossTotal]);
+
+  if (appliedRedemption && !appliedTierStillValid) {
+    // Defer with microtask to avoid setState during render.
+    queueMicrotask(() => setAppliedRedemption(null));
+  }
+
   const myReferralCode = matchedRewardProfile ? ensureRewardProfileReferralCode(matchedRewardProfile) : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,6 +149,9 @@ export default function CartPage() {
     if (cart.length === 0 || isSubmitting) return;
 
     setIsSubmitting(true);
+
+    const submittedAt = new Date().toISOString();
+    const redemptionAtSubmit = appliedRedemption && appliedTierStillValid ? appliedRedemption : null;
 
     const newOrder: OrderRequest = {
       id: `ORD-${(globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)).slice(0, 8).toUpperCase()}`,
@@ -123,8 +162,17 @@ export default function CartPage() {
       status: 'new',
       paymentStatus: 'pending',
       total: finalTotal,
-      createdAt: new Date().toISOString(),
-      notes: ''
+      createdAt: submittedAt,
+      notes: '',
+      ...(redemptionAtSubmit
+        ? {
+            rewardsProfileId: matchedRewardProfile?.id,
+            rewardsRedeemedPoints: redemptionAtSubmit.points,
+            rewardsDiscountAmount: Math.min(redemptionAtSubmit.discount, grossTotal),
+            rewardsRedemptionStatus: 'pending' as const,
+            rewardsAppliedAt: submittedAt,
+          }
+        : {}),
     };
 
     let notifyMessage = '';
@@ -226,7 +274,10 @@ export default function CartPage() {
   return (
     <PageLayout>
       <div className="container mx-auto px-4 py-8 md:py-16">
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-10 text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">CHECKOUT</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-10">
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">CHECKOUT</h1>
+          <CustomerDemoLink tour="checkout" label="How checkout works" variant="pill" />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-card rounded-3xl border border-border overflow-hidden">
@@ -256,6 +307,12 @@ export default function CartPage() {
                 <div className="space-y-3 font-bold text-lg">
                   <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>${cartTotal.toFixed(2)}</span></div>
                   {formData.pickupOrDelivery === 'delivery' && settings.deliveryFeeEnabled && <div className="flex justify-between text-muted-foreground"><span>Delivery Fee</span><span>${settings.deliveryFeeAmount.toFixed(2)}</span></div>}
+                  {rewardsDiscountApplied > 0 && (
+                    <div className="flex justify-between text-emerald-500" data-testid="text-cart-rewards-discount">
+                      <span>Rewards Discount{appliedRedemption ? ` (${appliedRedemption.points} pts)` : ''}</span>
+                      <span>−${rewardsDiscountApplied.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-3xl font-black text-foreground pt-4 border-t border-border"><span>Total</span><span className="text-primary">${finalTotal.toFixed(2)}</span></div>
                 </div>
               </div>
@@ -322,6 +379,88 @@ export default function CartPage() {
                       </div>
                     )}
                     {matchedRewardProfile && nextRewardTier && <p className="text-xs font-bold text-primary">{Math.max(0, nextRewardTier.points - matchedRewardProfile.currentPoints)} more points until your next reward.</p>}
+                  </div>
+                )}
+
+                {canShowRedemptionPanel && (
+                  <div className="space-y-3 border border-border rounded-2xl p-4 bg-background/60" data-testid="section-apply-rewards">
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-primary" />
+                      <h3 className="text-lg font-black uppercase tracking-wider">Apply Rewards</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You have <span className="font-black text-foreground">{currentPointsBalance} pts</span>. Pick a reward to apply to this order — points are reserved now and deducted when the order is completed.
+                    </p>
+                    <div className="space-y-2">
+                      {redemptionTiers.map(tier => {
+                        const enoughPoints = currentPointsBalance >= tier.points;
+                        const fitsCart = grossTotal >= tier.discount;
+                        const disabled = !enoughPoints || !fitsCart;
+                        const isSelected = appliedRedemption?.points === tier.points && appliedRedemption?.discount === tier.discount;
+                        const reason = !enoughPoints
+                          ? `Need ${tier.points - currentPointsBalance} more pts`
+                          : !fitsCart
+                            ? 'Cart total is too low for this reward'
+                            : '';
+                        return (
+                          <button
+                            key={`${tier.points}-${tier.discount}`}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => setAppliedRedemption(isSelected ? null : tier)}
+                            data-testid={`button-apply-reward-${tier.points}`}
+                            className={`w-full text-left flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                              isSelected
+                                ? 'bg-primary/15 border-primary'
+                                : disabled
+                                  ? 'bg-muted/40 border-border opacity-60 cursor-not-allowed'
+                                  : 'bg-background border-border hover:border-primary'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span
+                                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {isSelected ? <Check className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="font-black text-sm">${tier.discount.toFixed(2)} off — {tier.points} pts</div>
+                                {reason ? (
+                                  <div className="text-xs text-muted-foreground">{reason}</div>
+                                ) : isSelected ? (
+                                  <div className="text-xs text-emerald-500 font-bold">Applied to this order</div>
+                                ) : (
+                                  <div className="text-xs text-muted-foreground">Tap to apply at checkout</div>
+                                )}
+                              </div>
+                            </div>
+                            <span className="font-black text-primary shrink-0">{isSelected ? 'APPLIED' : 'APPLY'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {appliedRedemption && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-bold text-emerald-500">
+                          Saving ${rewardsDiscountApplied.toFixed(2)} with {appliedRedemption.points} pts.
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="font-bold uppercase"
+                          onClick={() => setAppliedRedemption(null)}
+                          data-testid="button-remove-applied-reward"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                    {!settings.rewardsAllowPromoStacking && (
+                      <p className="text-xs text-muted-foreground">Rewards cannot be combined with promo codes.</p>
+                    )}
                   </div>
                 )}
 

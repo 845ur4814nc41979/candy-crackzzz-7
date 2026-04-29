@@ -56,12 +56,45 @@ export function awardCompletedOrderRewards(params: {
   rewardProfiles: RewardProfile[];
 }) {
   const { order, settings } = params;
-  const rewardProfiles = params.rewardProfiles.map(profile => ({
+  let rewardProfiles = params.rewardProfiles.map(profile => ({
     ...profile,
     referralCode: ensureRewardProfileReferralCode(profile),
     successfulReferralCount: profile.successfulReferralCount ?? 0,
     lifetimeReferralPointsEarned: profile.lifetimeReferralPointsEarned ?? 0,
   }));
+
+  // Finalize a pending redemption attached at checkout: deduct the points and
+  // log a "redeemed" history entry. Runs whether or not rewards are enabled
+  // now, because the redemption was already recorded against the customer.
+  const pendingRedemption = order.rewardsRedemptionStatus === 'pending'
+    ? Math.max(0, Number(order.rewardsRedeemedPoints) || 0)
+    : 0;
+  let redemptionFinalized = false;
+  if (pendingRedemption > 0) {
+    const normalizedPhoneForRedeem = normalizePhone(order.phone || '');
+    if (normalizedPhoneForRedeem) {
+      const at = new Date().toISOString();
+      rewardProfiles = rewardProfiles.map(profile => {
+        if (normalizePhone(profile.phone) !== normalizedPhoneForRedeem) return profile;
+        const deduct = Math.min(pendingRedemption, profile.currentPoints);
+        if (deduct <= 0) return profile;
+        redemptionFinalized = true;
+        return {
+          ...profile,
+          currentPoints: profile.currentPoints - deduct,
+          lifetimePointsRedeemed: profile.lifetimePointsRedeemed + deduct,
+          rewardsHistory: [{
+            id: createShortId('RWH'),
+            type: 'redeemed' as const,
+            points: -deduct,
+            orderId: order.id,
+            note: `Reward redeemed at checkout ($${(Number(order.rewardsDiscountAmount) || 0).toFixed(2)} off).`,
+            createdAt: at,
+          }, ...profile.rewardsHistory],
+        };
+      });
+    }
+  }
 
   if (!settings.enableRewards || !order.rewardsOptIn) {
     return {
@@ -69,6 +102,7 @@ export function awardCompletedOrderRewards(params: {
       awardedPoints: 0,
       referralReferrerPointsAwarded: 0,
       referralReferredCustomerPointsAwarded: 0,
+      redemptionFinalized,
     };
   }
 
@@ -79,6 +113,7 @@ export function awardCompletedOrderRewards(params: {
       awardedPoints: 0,
       referralReferrerPointsAwarded: 0,
       referralReferredCustomerPointsAwarded: 0,
+      redemptionFinalized,
     };
   }
 
@@ -171,6 +206,7 @@ export function awardCompletedOrderRewards(params: {
       awardedPoints: totalCustomerPointsAwarded,
       referralReferrerPointsAwarded,
       referralReferredCustomerPointsAwarded,
+      redemptionFinalized,
     };
   }
 
@@ -238,5 +274,36 @@ export function awardCompletedOrderRewards(params: {
     awardedPoints: totalCustomerPointsAwarded,
     referralReferrerPointsAwarded,
     referralReferredCustomerPointsAwarded,
+    redemptionFinalized,
   };
+}
+
+/**
+ * Pick the best discount tier the customer can afford right now (highest
+ * discount within their balance, no upgrades). Returns null if none.
+ */
+export function pickEligibleRewardTier(params: {
+  settings: Settings;
+  currentPoints: number;
+  cartGrossTotal: number;
+}): { points: number; discount: number } | null {
+  const { settings, currentPoints, cartGrossTotal } = params;
+  if (!settings.enableRewards) return null;
+  const tiers = [
+    { points: settings.rewardsTier1Points, discount: settings.rewardsTier1Discount },
+    { points: settings.rewardsTier2Points, discount: settings.rewardsTier2Discount },
+    { points: settings.rewardsTier3Points, discount: settings.rewardsTier3Discount },
+  ].filter(t => t.points > 0 && t.discount > 0)
+    .filter(t => t.points <= currentPoints && t.discount <= cartGrossTotal)
+    .sort((a, b) => b.discount - a.discount);
+  return tiers[0] ?? null;
+}
+
+/** All redemption tiers configured (irrespective of customer balance). */
+export function listRewardTiers(settings: Settings): { points: number; discount: number }[] {
+  return [
+    { points: settings.rewardsTier1Points, discount: settings.rewardsTier1Discount },
+    { points: settings.rewardsTier2Points, discount: settings.rewardsTier2Discount },
+    { points: settings.rewardsTier3Points, discount: settings.rewardsTier3Discount },
+  ].filter(t => t.points > 0 && t.discount > 0).sort((a, b) => a.points - b.points);
 }

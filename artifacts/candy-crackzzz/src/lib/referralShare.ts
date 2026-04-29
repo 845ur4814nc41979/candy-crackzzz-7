@@ -8,9 +8,12 @@ export interface ReferralShareContext {
   >;
 }
 
-export function getReferralShareUrl() {
+export function getReferralShareUrl(code?: string) {
   if (typeof window === 'undefined') return '';
-  return `${window.location.origin}/rewards`;
+  const base = `${window.location.origin}/rewards`;
+  const cleaned = (code || '').trim();
+  if (!cleaned) return base;
+  return `${base}?ref=${encodeURIComponent(cleaned)}`;
 }
 
 export function buildReferralShareTitle(settings: ReferralShareContext['settings']) {
@@ -21,7 +24,7 @@ export function buildReferralShareTitle(settings: ReferralShareContext['settings
 export function buildReferralShareMessage({ code, settings }: ReferralShareContext) {
   if (!code) return '';
   const brand = settings.businessName?.trim() || 'Candy Crackzzz';
-  const url = getReferralShareUrl();
+  const url = getReferralShareUrl(code);
   const friendBonus = Math.max(0, Number(settings.referralReferredCustomerBonusPoints) || 0);
   const myBonus = Math.max(0, Number(settings.referralReferrerBonusPoints) || 0);
 
@@ -98,7 +101,7 @@ export async function shareReferralCode(ctx: ReferralShareContext): Promise<'sha
   const data: ShareData = {
     title: buildReferralShareTitle(ctx.settings),
     text: buildReferralShareMessage(ctx),
-    url: getReferralShareUrl() || undefined,
+    url: getReferralShareUrl(ctx.code) || undefined,
   };
   try {
     await navigator.share(data);

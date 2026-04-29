@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap, Users } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Palette, CreditCard, Store, Menu, Star, ShieldCheck, LogOut, AlertTriangle, Mail, Gift, Shirt, Zap, Users, Truck } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +8,7 @@ import { useAppContext } from '@/context/AppContext';
 import { Permission, roleLabels, userHasAnyPermission } from '@/lib/permissions';
 import NotificationBell from '@/components/admin/NotificationBell';
 import NotificationSoundUnlockBanner from '@/components/admin/NotificationSoundUnlockBanner';
+import AdminDemoLauncher from '@/components/demo/AdminDemoLauncher';
 
 type NavItem = {
   href: string;
@@ -30,6 +31,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { href: '/admin/products', icon: Package, label: 'Products', permissions: ['manageProducts', 'viewProducts'] },
     { href: '/admin/merch', icon: Shirt, label: 'Merch', permissions: ['manageMerch', 'viewMerch'] },
     { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', permissions: ['manageOrders', 'viewOrders'] },
+    { href: '/admin/deliveries', icon: Truck, label: 'Deliveries', permissions: ['manageOrders', 'viewOrders'] },
     { href: '/admin/messages', icon: Mail, label: 'Messages', permissions: ['manageMessages', 'viewMessages'] },
     { href: '/admin/reviews', icon: Star, label: 'Reviews', badge: pendingReviews > 0 ? pendingReviews : undefined, permissions: ['manageSiteSettings'] },
     { href: '/admin/rewards', icon: Gift, label: 'Rewards', permissions: ['manageRewards', 'viewRewards'] },
@@ -119,14 +121,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </SheetContent>
         </Sheet>
         <span className="font-black text-xl uppercase tracking-wider text-sidebar-foreground">Admin Panel</span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1">
+          <AdminDemoLauncher auto={false} trigger="icon" />
           <NotificationBell />
           <Link href="/" className="text-xs font-bold text-sidebar-foreground/60 hover:text-sidebar-foreground uppercase tracking-wider">Store</Link>
         </div>
       </div>
 
       <main className="flex-1 min-w-0 overflow-auto">
-        <div className="hidden lg:flex justify-end px-8 pt-6">
+        <div className="hidden lg:flex justify-end items-center gap-2 px-8 pt-6">
+          <AdminDemoLauncher auto trigger="icon" />
           <NotificationBell />
         </div>
         <div className="p-4 lg:p-8 pt-20 lg:pt-2 space-y-4">
@@ -135,9 +139,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div className="bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-2xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <div className="font-black uppercase tracking-wider text-sm">Temporary Owner Password</div>
+                <div className="font-black uppercase tracking-wider text-sm">Temporary Builder Password</div>
                 <p className="text-sm font-bold mt-1">
-                  You are signed in with the seeded owner account. Change the username and password from Account and Security before going live.
+                  You are signed in with the seeded builder account. Change the username and password from Account and Security before going live.
                 </p>
               </div>
               <Link href="/admin/account">

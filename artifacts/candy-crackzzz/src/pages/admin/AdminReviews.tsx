@@ -99,6 +99,21 @@ export default function AdminReviews() {
                     )}
                   </div>
                   <p className="text-foreground/80 font-medium mb-2 italic">"{review.text}"</p>
+                  {review.imageBase64 && (
+                    <a
+                      href={review.imageBase64}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mb-3"
+                      data-testid={`link-review-image-${review.id}`}
+                    >
+                      <img
+                        src={review.imageBase64}
+                        alt={`${review.customerName} review photo`}
+                        className="max-h-40 rounded-xl border border-border object-cover"
+                      />
+                    </a>
+                  )}
                   <p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleString()}</p>
                 </div>
 

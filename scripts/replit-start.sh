@@ -12,8 +12,12 @@ cd "$ROOT_DIR"
 echo "Installing dependencies..."
 pnpm install
 
-echo "Creating/updating database tables..."
-pnpm --filter @workspace/db run push
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo "Creating/updating database tables..."
+  pnpm --filter @workspace/db run push
+else
+  echo "DATABASE_URL not set; using file storage fallback"
+fi
 
 echo "Starting API server on port 3001..."
 PORT=3001 pnpm --filter @workspace/api-server run dev &

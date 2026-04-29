@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import AppErrorBoundary from "@/components/layout/AppErrorBoundary";
 
 import HomePage from "@/pages/HomePage";
 import MenuPage from "@/pages/MenuPage";
@@ -26,6 +27,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminProductForm from "@/pages/admin/AdminProductForm";
 import AdminOrders from "@/pages/admin/AdminOrdersReferralBadges";
+import AdminDeliveries from "@/pages/admin/AdminDeliveries";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminRewards from "@/pages/admin/AdminRewards";
 import AdminMerch from "@/pages/admin/AdminMerch";
@@ -75,6 +77,9 @@ function Router() {
       <Route path="/admin/orders">
         {() => <ProtectedRoute requireAnyPermission={['manageOrders', 'viewOrders']}><AdminOrders /></ProtectedRoute>}
       </Route>
+      <Route path="/admin/deliveries">
+        {() => <ProtectedRoute requireAnyPermission={['manageOrders', 'viewOrders']}><AdminDeliveries /></ProtectedRoute>}
+      </Route>
       <Route path="/admin/settings">
         {() => <ProtectedRoute requireAnyPermission={['manageSiteSettings', 'manageSystemSettings']}><AdminSettings /></ProtectedRoute>}
       </Route>
@@ -114,17 +119,19 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <PageViewTracker />
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </AppProvider>
-      </AuthProvider>
+      <AppErrorBoundary>
+        <AuthProvider>
+          <AppProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <PageViewTracker />
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </AppProvider>
+        </AuthProvider>
+      </AppErrorBoundary>
     </QueryClientProvider>
   );
 }

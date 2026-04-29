@@ -32,22 +32,24 @@ export const ASSIGNABLE_ROLES: Exclude<AdminRole, 'employee'>[] = [
   'system_admin',
   'campaign_admin',
   'staff',
+  'delivery_driver',
   'viewer',
 ];
 
 export const roleLabels: Record<AdminRole, string> = {
-  owner: 'Owner',
+  owner: 'Builder',
   site_admin: 'Site Admin',
   system_admin: 'System Admin',
   campaign_admin: 'Campaign Admin',
   staff: 'Staff',
+  delivery_driver: 'Delivery Driver',
   viewer: 'Viewer',
   employee: 'Staff (legacy)',
 };
 
 export const roleDescriptions: Record<AdminRole, string> = {
   owner:
-    'Full access. Manages the team, all settings, products, orders, campaigns, payments, and system configuration.',
+    'Full access (the builder/owner of the site). Manages the team, all settings, products, orders, campaigns, payments, and system configuration.',
   site_admin:
     'Runs the storefront day-to-day: products, merch, orders, messages, campaigns, payments, branding, and site settings.',
   system_admin:
@@ -55,6 +57,8 @@ export const roleDescriptions: Record<AdminRole, string> = {
   campaign_admin:
     'Builds and tracks marketing: campaigns and the rewards program. Read-only on orders, messages, and analytics.',
   staff: 'Front-line crew: handles orders and customer messages.',
+  delivery_driver:
+    'On-the-road crew: views delivery orders and updates delivery status (out for delivery, delivered, issue). Cannot edit products, settings, or other customers.',
   viewer: 'Read-only access to dashboard, orders, messages, products, merch, campaigns, rewards, and analytics.',
   employee: 'Legacy staff role. Treated the same as Staff.',
 };
@@ -108,6 +112,9 @@ const ROLE_PERMISSIONS: Record<Exclude<AdminRole, 'employee'>, Permission[]> = {
     'manageOrders', 'viewOrders',
     'manageMessages', 'viewMessages',
   ],
+  delivery_driver: [
+    'manageOrders', 'viewOrders',
+  ],
   viewer: [
     'viewProducts',
     'viewMerch',
@@ -130,6 +137,7 @@ export const rolePermissions: Record<AdminRole, Permission[]> = {
   system_admin: ROLE_PERMISSIONS.system_admin,
   campaign_admin: ROLE_PERMISSIONS.campaign_admin,
   staff: ROLE_PERMISSIONS.staff,
+  delivery_driver: ROLE_PERMISSIONS.delivery_driver,
   viewer: ROLE_PERMISSIONS.viewer,
   employee: ROLE_PERMISSIONS.staff,
 };

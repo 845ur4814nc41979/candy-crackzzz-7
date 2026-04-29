@@ -46,6 +46,7 @@ export default function AdminOrdersReferralBadges() {
     let awardedPoints = 0;
     let referralReferrerPointsAwarded = 0;
     let referralReferredCustomerPointsAwarded = 0;
+    let redemptionFinalized = false;
 
     if (
       newStatus === 'completed' &&
@@ -60,19 +61,36 @@ export default function AdminOrdersReferralBadges() {
       awardedPoints = result.awardedPoints;
       referralReferrerPointsAwarded = result.referralReferrerPointsAwarded;
       referralReferredCustomerPointsAwarded = result.referralReferredCustomerPointsAwarded;
+      redemptionFinalized = result.redemptionFinalized;
       if (result.updatedProfiles !== rewardProfiles) {
         setRewardProfiles(result.updatedProfiles);
       }
     }
 
+    const completedAt = new Date().toISOString();
+    const wasPendingRedemption = targetOrder.rewardsRedemptionStatus === 'pending';
+
     setOrders(prev => prev.map(o => o.id === orderId ? {
       ...o,
       status: newStatus,
       rewardsPointsAwarded: newStatus === 'completed' && !o.rewardsAwardedAt ? awardedPoints : o.rewardsPointsAwarded,
-      rewardsAwardedAt: newStatus === 'completed' && !o.rewardsAwardedAt && awardedPoints >= 0 ? new Date().toISOString() : o.rewardsAwardedAt,
+      rewardsAwardedAt: newStatus === 'completed' && !o.rewardsAwardedAt && awardedPoints >= 0 ? completedAt : o.rewardsAwardedAt,
       referralReferrerPointsAwarded: newStatus === 'completed' && !o.rewardsAwardedAt ? referralReferrerPointsAwarded : o.referralReferrerPointsAwarded,
       referralReferredCustomerPointsAwarded: newStatus === 'completed' && !o.rewardsAwardedAt ? referralReferredCustomerPointsAwarded : o.referralReferredCustomerPointsAwarded,
-      referralAwardedAt: newStatus === 'completed' && !o.rewardsAwardedAt && (referralReferrerPointsAwarded > 0 || referralReferredCustomerPointsAwarded > 0) ? new Date().toISOString() : o.referralAwardedAt,
+      referralAwardedAt: newStatus === 'completed' && !o.rewardsAwardedAt && (referralReferrerPointsAwarded > 0 || referralReferredCustomerPointsAwarded > 0) ? completedAt : o.referralAwardedAt,
+      // Reward redemption lifecycle:
+      // - On completion with a pending redemption that succeeded: mark applied + redeemedAt
+      // - On cancellation with a pending redemption: mark cancelled (no points were ever deducted, so nothing to refund)
+      rewardsRedemptionStatus:
+        newStatus === 'completed' && wasPendingRedemption && redemptionFinalized
+          ? 'applied'
+          : newStatus === 'cancelled' && wasPendingRedemption
+            ? 'cancelled'
+            : o.rewardsRedemptionStatus,
+      rewardsRedeemedAt:
+        newStatus === 'completed' && wasPendingRedemption && redemptionFinalized
+          ? completedAt
+          : o.rewardsRedeemedAt,
     } : o));
   };
 

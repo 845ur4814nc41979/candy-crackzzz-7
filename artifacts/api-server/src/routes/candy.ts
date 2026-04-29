@@ -924,6 +924,29 @@ router.post("/cc/orders/notify", async (req, res) => {
 router.get("/cc/status", async (req, res) => {
   if (!(await ensureAdmin(req, res))) return;
   try {
+    // Future-API readiness: report presence-only flags for optional providers.
+    // Never expose actual key values — only booleans.
+    const optionalProviders = {
+      openai: {
+        configured: !!process.env["OPENAI_API_KEY"],
+        missing: process.env["OPENAI_API_KEY"] ? [] : ["OPENAI_API_KEY"],
+        purpose: "Smart product descriptions and AI assist.",
+      },
+      googleMaps: {
+        configured: !!process.env["GOOGLE_MAPS_API_KEY"],
+        missing: process.env["GOOGLE_MAPS_API_KEY"] ? [] : ["GOOGLE_MAPS_API_KEY"],
+        purpose: "Driver directions and address autocomplete.",
+      },
+      push: {
+        configured: !!process.env["VAPID_PUBLIC_KEY"] && !!process.env["VAPID_PRIVATE_KEY"],
+        missing: [
+          process.env["VAPID_PUBLIC_KEY"] ? null : "VAPID_PUBLIC_KEY",
+          process.env["VAPID_PRIVATE_KEY"] ? null : "VAPID_PRIVATE_KEY",
+        ].filter((value): value is string => !!value),
+        purpose: "Browser push notifications for new orders.",
+      },
+    };
+
     res.json({
       database: { connected: isUsingDatabase(), kind: isUsingDatabase() ? "postgres" : "file" },
       session: {
@@ -933,6 +956,7 @@ router.get("/cc/status", async (req, res) => {
       },
       email: emailProviderStatus(),
       sms: smsProviderStatus(),
+      providers: optionalProviders,
       businessName: process.env["BUSINESS_NAME"] ?? null,
     });
   } catch (error) {

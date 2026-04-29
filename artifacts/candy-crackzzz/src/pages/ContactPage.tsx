@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Star } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Star, ImagePlus, X } from 'lucide-react';
 import { SiInstagram, SiTiktok, SiFacebook } from 'react-icons/si';
 import PageLayout from '@/components/layout/PageLayout';
 import { useAppContext } from '@/context/AppContext';
@@ -15,8 +15,42 @@ export default function ContactPage() {
   const { settings, reviews, setReviews } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, text: '' });
+  const [reviewForm, setReviewForm] = useState<{ name: string; rating: number; text: string; imageBase64: string }>(
+    { name: '', rating: 5, text: '', imageBase64: '' },
+  );
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewImageError, setReviewImageError] = useState('');
+
+  const REVIEW_IMAGE_MAX_BYTES = 2_500_000;
+
+  const handleReviewImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setReviewImageError('');
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setReviewImageError('Please pick a valid image file.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > REVIEW_IMAGE_MAX_BYTES) {
+      setReviewImageError('Image must be 2.5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result) {
+        setReviewImageError('Could not read image.');
+        return;
+      }
+      setReviewForm((prev) => ({ ...prev, imageBase64: result }));
+    };
+    reader.onerror = () => setReviewImageError('Could not read image.');
+    reader.readAsDataURL(file);
+  };
+
+  const clearReviewImage = () => setReviewForm((prev) => ({ ...prev, imageBase64: '' }));
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -74,6 +108,7 @@ export default function ContactPage() {
       createdAt: new Date().toISOString(),
       status: 'pending',
       isFeatured: false,
+      imageBase64: reviewForm.imageBase64 || undefined,
     };
     setReviews(prev => [...prev, newReview]);
     setReviewSubmitted(true);
@@ -287,6 +322,40 @@ export default function ContactPage() {
                     placeholder="Tell us about your experience..."
                     className="bg-background min-h-[100px] resize-none font-medium"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-bold uppercase tracking-wider text-xs text-muted-foreground">Photo (optional)</Label>
+                  {reviewForm.imageBase64 ? (
+                    <div className="relative inline-block">
+                      <img src={reviewForm.imageBase64} alt="Review preview" className="max-h-48 rounded-xl border border-border bg-background" />
+                      <button
+                        type="button"
+                        onClick={clearReviewImage}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                        data-testid="button-remove-review-image"
+                        aria-label="Remove photo"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 cursor-pointer text-sm font-bold bg-background border border-dashed border-border rounded-xl px-4 py-3 hover:border-primary transition-colors">
+                      <ImagePlus className="w-4 h-4 text-primary" />
+                      <span>Add a photo of your treat</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleReviewImageChange}
+                        data-testid="input-review-image"
+                      />
+                    </label>
+                  )}
+                  {reviewImageError && (
+                    <p className="text-xs font-bold text-destructive">{reviewImageError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">PNG or JPG, up to 2.5 MB.</p>
                 </div>
 
                 <Button type="submit" size="lg" className="w-full font-black uppercase tracking-wider shadow-[0_0_15px_rgba(255,0,255,0.3)]">
