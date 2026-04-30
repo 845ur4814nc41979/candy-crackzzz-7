@@ -42,7 +42,11 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-stretch md:items-center justify-center md:p-4 bg-black/70 backdrop-blur-sm overflow-hidden"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm overflow-hidden p-3 md:p-4"
+      style={{
+        paddingTop: 'max(12px, env(safe-area-inset-top))',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="guided-tour-title"
@@ -50,24 +54,23 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
       onClick={onClose}
     >
       <div
-        className="relative w-full md:max-w-md bg-card border-0 md:border md:border-border rounded-none md:rounded-3xl shadow-2xl shadow-primary/20 flex flex-col h-[100dvh] md:h-auto md:max-h-[90dvh] overflow-hidden"
+        className="relative w-full max-w-[420px] md:max-w-md bg-card border border-border rounded-3xl shadow-2xl shadow-primary/20 flex flex-col overflow-hidden"
         style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          maxHeight: 'calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-5 md:px-6 pt-5 md:pt-6 pb-4 border-b border-border bg-gradient-to-br from-primary/15 via-card to-secondary/10 shrink-0">
+        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-border bg-gradient-to-br from-primary/15 via-card to-secondary/10 shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                   {tour.audience} • Step {stepIndex + 1} of {total}
                 </div>
-                <h2 id="guided-tour-title" className="text-lg font-black uppercase tracking-tight truncate">
+                <h2 id="guided-tour-title" className="text-base md:text-lg font-black uppercase tracking-tight truncate">
                   {tour.title}
                 </h2>
               </div>
@@ -76,7 +79,7 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
               type="button"
               onClick={onClose}
               aria-label="Close tour"
-              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-background"
+              className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-background shrink-0"
               data-testid="button-tour-close"
             >
               <X className="w-5 h-5" />
@@ -92,9 +95,9 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
           </div>
         </div>
 
-        <div className="px-5 md:px-6 py-5 space-y-3 flex-1 min-h-0 overflow-y-auto">
+        <div className="px-4 md:px-6 py-4 md:py-5 space-y-3 flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
           <div>
-            <h3 className="font-black text-xl text-foreground mb-2" data-testid="tour-step-title">
+            <h3 className="font-black text-lg md:text-xl text-foreground mb-2" data-testid="tour-step-title">
               {step.title}
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed font-medium" data-testid="tour-step-body">
@@ -110,50 +113,55 @@ export default function GuidedTour({ tour, open, onClose, onComplete }: GuidedTo
           )}
         </div>
 
-        <div className="px-5 md:px-6 py-4 border-t border-border flex items-center justify-between gap-3 bg-background/40 sticky bottom-0 shrink-0">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            className="font-black uppercase tracking-wider text-xs"
-            data-testid="button-tour-skip"
-          >
-            Skip
-          </Button>
-
-          <div className="flex items-center gap-2">
+        <div
+          className="px-4 md:px-6 py-3 md:py-4 border-t border-border bg-background/95 shrink-0"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:items-center sm:justify-between sm:gap-3">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              disabled={isFirst}
-              onClick={() => setStepIndex(prev => Math.max(prev - 1, 0))}
-              className="font-black uppercase tracking-wider"
-              data-testid="button-tour-back"
+              variant="ghost"
+              onClick={onClose}
+              className="h-11 font-black uppercase tracking-wider text-xs order-2 sm:order-1"
+              data-testid="button-tour-skip"
             >
-              <ChevronLeft className="w-4 h-4 mr-1" /> Back
+              Skip Tour
             </Button>
-            {isLast ? (
+
+            <div className="grid grid-cols-2 gap-2 order-1 sm:order-2 sm:flex sm:items-center">
               <Button
                 type="button"
+                variant="outline"
                 size="sm"
-                onClick={finish}
-                className="font-black uppercase tracking-wider"
-                data-testid="button-tour-finish"
+                disabled={isFirst}
+                onClick={() => setStepIndex(prev => Math.max(prev - 1, 0))}
+                className="h-11 font-black uppercase tracking-wider"
+                data-testid="button-tour-back"
               >
-                Finish <Check className="w-4 h-4 ml-1" />
+                <ChevronLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-            ) : (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setStepIndex(prev => Math.min(prev + 1, total - 1))}
-                className="font-black uppercase tracking-wider"
-                data-testid="button-tour-next"
-              >
-                Next <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            )}
+              {isLast ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={finish}
+                  className="h-11 font-black uppercase tracking-wider"
+                  data-testid="button-tour-finish"
+                >
+                  Finish <Check className="w-4 h-4 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setStepIndex(prev => Math.min(prev + 1, total - 1))}
+                  className="h-11 font-black uppercase tracking-wider"
+                  data-testid="button-tour-next"
+                >
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
