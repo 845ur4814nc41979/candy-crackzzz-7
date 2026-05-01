@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Trash2, ArrowRight, Gift, Check } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { calculateEstimatedPoints, ensureRewardProfileReferralCode, generateReferralCode, listRewardTiers, normalizePhone, normalizeReferralCode } from '@/lib/rewards';
 import { apiNotifyOrder } from '@/lib/api';
 import ReferralShareButton from '@/components/referrals/ReferralShareButton';
+import { readStoredStaffReferralCode, captureStaffReferralFromCurrentUrl } from '@/lib/staffReferral';
 import CustomerDemoLink from '@/components/demo/CustomerDemoLink';
 
 export default function CartPage() {
@@ -21,6 +22,9 @@ export default function CartPage() {
   const { cart, removeFromCart, cartTotal, settings, setOrders, rewardProfiles, setRewardProfiles } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Capture any staffRef param in the current URL so it is stored before checkout.
+  useEffect(() => { captureStaffReferralFromCurrentUrl(); }, []);
 
   const availablePaymentMethods = useMemo(() => {
     const methods: { value: string; label: string; instructions?: string }[] = [];
@@ -160,6 +164,12 @@ export default function CartPage() {
     const referralCodeForOrder = typedReferralCode
       || normalizeReferralCode(matchedRewardProfile?.referredByCode || '');
 
+    // Read the stored staff referral code (set when the customer landed on
+    // /rewards?staffRef=CODE or any staffRef-bearing URL). Prefer the code
+    // already recorded on their existing profile so it can't be changed later.
+    const storedStaffRefCode = readStoredStaffReferralCode();
+    const staffRefCodeForOrder = matchedRewardProfile?.referredByStaffCode || storedStaffRefCode;
+
     const newOrder: OrderRequest = {
       id: `ORD-${(globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)).slice(0, 8).toUpperCase()}`,
       ...formData,
@@ -171,6 +181,7 @@ export default function CartPage() {
       total: finalTotal,
       createdAt: submittedAt,
       notes: '',
+      ...(staffRefCodeForOrder ? { employeeReferralCodeUsed: staffRefCodeForOrder } : {}),
       ...(redemptionAtSubmit
         ? {
             rewardsProfileId: matchedRewardProfile?.id,
@@ -220,6 +231,7 @@ export default function CartPage() {
               referredByCode: normalizeReferralCode(formData.referralCodeUsed) || undefined,
               successfulReferralCount: 0,
               lifetimeReferralPointsEarned: 0,
+              referredByStaffCode: storedStaffRefCode || undefined,
               rewardsHistory: [],
             }, ...prev];
           }
@@ -234,6 +246,7 @@ export default function CartPage() {
                   smsMarketingOptIn: formData.smsMarketingOptIn || profile.smsMarketingOptIn,
                   referralCode: ensureRewardProfileReferralCode(profile),
                   referredByCode: profile.referredByCode || (normalizeReferralCode(formData.referralCodeUsed) || undefined),
+                  referredByStaffCode: profile.referredByStaffCode || storedStaffRefCode || undefined,
                   successfulReferralCount: profile.successfulReferralCount ?? 0,
                   lifetimeReferralPointsEarned: profile.lifetimeReferralPointsEarned ?? 0,
                   lastOrderDate: newOrder.createdAt,

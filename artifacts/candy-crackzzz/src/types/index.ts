@@ -82,6 +82,16 @@ export interface OrderRequest {
   rewardsAppliedAt?: string;
   /** When the redemption was finalized (points actually deducted on completion). */
   rewardsRedeemedAt?: string;
+  /** Staff referral code that was active when this order was placed (from staffRef URL param). */
+  employeeReferralCodeUsed?: string;
+  /** Cash bonus amount owed to the staff member who referred this customer. */
+  employeeReferralBonusAmount?: number;
+  /** Lifecycle of the staff bonus: none | ineligible | pending | approved | paid | cancelled. */
+  employeeReferralBonusStatus?: 'none' | 'ineligible' | 'pending' | 'approved' | 'paid' | 'cancelled';
+  /** Human-readable explanation of how the bonus was calculated. */
+  employeeReferralBonusNote?: string;
+  /** ISO timestamp of when the bonus was first calculated (guards against double-calculation). */
+  employeeReferralBonusCalculatedAt?: string;
   total: number;
   createdAt: string;
 }
@@ -180,6 +190,8 @@ export interface RewardProfile {
   referredByCode?: string;
   successfulReferralCount?: number;
   lifetimeReferralPointsEarned?: number;
+  /** Staff referral code that was captured when this customer joined rewards. Internal field — never shown to customers. */
+  referredByStaffCode?: string;
   rewardsHistory: RewardsHistoryEntry[];
 }
 
