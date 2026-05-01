@@ -1,8 +1,4 @@
-# Replit root configuration for Candy CrackZZZ
-# Keep this file at the repository/workspace root. Replit publishing looks for:
-# /home/runner/workspace/.replit
-
-modules = ["nodejs-20", "web", "bash"]
+modules = ["nodejs-20", "web", "bash", "python-3.11"]
 
 [agent]
 expertMode = true
@@ -14,11 +10,6 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-# Public/non-secret runtime defaults only. Put real passwords and keys in Replit Secrets.
-# Port rules:
-# 3001 = backend/API server
-# 5000 = frontend/customer/admin website preview
-PORT = "3001"
 API_PORT = "3001"
 
 [workflows]
@@ -27,26 +18,18 @@ runButton = "Project"
 [[workflows.workflow]]
 name = "Project"
 author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash scripts/replit-start.sh"
-waitForPort = 5000
+mode = "parallel"
 
 [workflows.workflow.metadata]
 outputType = "webview"
 
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=3001 pnpm --filter @workspace/api-server run dev"
-waitForPort = 3001
+args = "bash scripts/replit-start.sh"
 
-[workflows.workflow.metadata]
-outputType = "console"
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -54,7 +37,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=5000 API_PORT=3001 pnpm --filter @workspace/candy-crackzzz run dev"
+args = "bash scripts/replit-start.sh"
 waitForPort = 5000
 
 [workflows.workflow.metadata]

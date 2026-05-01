@@ -9,6 +9,20 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Free ports if anything is still holding them from a previous run
+freeport() {
+  local port="$1"
+  local pids
+  pids=$(lsof -ti tcp:"$port" 2>/dev/null || true)
+  if [ -n "$pids" ]; then
+    echo "Freeing port $port (pids: $pids)..."
+    echo "$pids" | xargs kill -9 2>/dev/null || true
+    sleep 1
+  fi
+}
+freeport 3001
+freeport 5000
+
 echo "Installing dependencies..."
 pnpm install
 
