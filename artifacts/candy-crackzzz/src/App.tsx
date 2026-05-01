@@ -30,6 +30,7 @@ import AdminOrders from "@/pages/admin/AdminOrdersReferralBadges";
 import AdminDeliveries from "@/pages/admin/AdminDeliveries";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminRewards from "@/pages/admin/AdminRewards";
+import AdminStaffReferralzzz from "@/pages/admin/AdminStaffReferralzzz";
 import AdminMerch from "@/pages/admin/AdminMerch";
 import AdminCampaigns from "@/pages/admin/AdminCampaigns";
 import AdminBranding from "@/pages/admin/AdminBranding";
@@ -39,6 +40,7 @@ import AdminAccount from "@/pages/admin/AdminAccount";
 import AdminMessages from "@/pages/admin/AdminMessages";
 import AdminTeam from "@/pages/admin/AdminTeam";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
+import StaffReferralTracker from "@/components/referrals/StaffReferralTracker";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +88,9 @@ function Router() {
       <Route path="/admin/rewards">
         {() => <ProtectedRoute requireAnyPermission={['manageRewards', 'viewRewards']}><AdminRewards /></ProtectedRoute>}
       </Route>
+      <Route path="/admin/staff-referralzzz">
+        {() => <ProtectedRoute requireAnyPermission={['manageRewards', 'manageAdmins']}><AdminStaffReferralzzz /></ProtectedRoute>}
+      </Route>
       <Route path="/admin/merch">
         {() => <ProtectedRoute requireAnyPermission={['manageMerch', 'viewMerch']}><AdminMerch /></ProtectedRoute>}
       </Route>
@@ -125,6 +130,7 @@ function App() {
             <TooltipProvider>
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <PageViewTracker />
+                <StaffReferralTracker />
                 <Router />
               </WouterRouter>
               <Toaster />
