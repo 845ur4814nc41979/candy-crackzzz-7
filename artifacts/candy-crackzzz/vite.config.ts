@@ -4,14 +4,18 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-const rawPort = process.env.PORT ?? "3000";
+// Replit webview/proxy binds to 5000 immediately using scripts/proxy-server.cjs.
+// The actual Vite dev server runs on 5001 behind that proxy. Keep strictPort
+// on so Vite never silently moves to another port and breaks the preview.
+const rawPort = process.env.FRONTEND_PORT ?? process.env.PORT ?? "5001";
 const port = Number(rawPort);
 
+// The Express/API server is separate and should stay on 3001.
 const rawApiPort = process.env.API_PORT ?? "3001";
 const apiPort = Number(rawApiPort);
 
 if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+  throw new Error(`Invalid frontend port value: "${rawPort}"`);
 }
 
 if (Number.isNaN(apiPort) || apiPort <= 0) {
@@ -54,6 +58,7 @@ export default defineConfig({
   },
   server: {
     port,
+    strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
     proxy: {
@@ -69,6 +74,7 @@ export default defineConfig({
   },
   preview: {
     port,
+    strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
     proxy: {
