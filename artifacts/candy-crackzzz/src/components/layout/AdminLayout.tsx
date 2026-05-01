@@ -37,6 +37,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { href: '/admin/messages', icon: Mail, label: 'Messagezzz', permissions: ['manageMessages', 'viewMessages'] },
     { href: '/admin/reviews', icon: Star, label: 'Reviewzzz', badge: pendingReviews > 0 ? pendingReviews : undefined, permissions: ['manageSiteSettings'] },
     { href: '/admin/rewards', icon: Gift, label: 'Rewardzzz', permissions: ['manageRewards', 'viewRewards'] },
+    { href: '/admin/staff-referralzzz', icon: Users, label: 'Staff Referralzzz', permissions: ['manageRewards', 'manageAdmins'] },
     { href: '/admin/campaigns', icon: Zap, label: 'Campaignzzz', permissions: ['manageCampaigns', 'viewCampaigns'] },
     { href: '/admin/settings', icon: Settings, label: 'Settingzzz', permissions: ['manageSiteSettings', 'manageSystemSettings'] },
     { href: '/admin/branding', icon: Palette, label: 'Branding', permissions: ['manageBranding'] },
