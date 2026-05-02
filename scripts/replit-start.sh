@@ -3,15 +3,12 @@ set -euo pipefail
 
 # Candy CrackZZZ Replit import starter
 #
-# Replit's preview/canvas expects something to bind port 5000 quickly. The
-# real Vite dev server runs on 5001, and scripts/proxy-server.cjs binds 5000
-# immediately, then forwards HTTP/WebSocket traffic to Vite. This prevents the
-# recurring white screen / 502 after checkpoints and fresh imports.
-#
-# Ports:
-#   5000 = instant preview proxy for Replit webview
-#   5001 = Vite dev server
+# Fresh-import port plan:
+#   5000 = Vite frontend / Replit webview preview
 #   3001 = Express/API server
+#
+# Do not start a separate Vite workflow or API workflow. The single
+# "Start application" workflow should run this script and wait for port 5000.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -49,23 +46,9 @@ freeport() {
   fi
 }
 
-# Clean only the specific app ports. 5000 is the preview proxy, 5001 is Vite,
-# and 3001 is the API. Do this after the health check so we do not kill a good run.
+# Clean only the app ports after the health check so we do not kill a good run.
 freeport 3001
 freeport 5000
-freeport 5001
-
-# Start the preview proxy first so Replit registers port 5000 immediately.
-echo "Starting Replit preview proxy on port 5000 -> Vite 5001..."
-PREVIEW_PROXY_PORT=5000 VITE_TARGET_PORT=5001 node scripts/proxy-server.cjs &
-PROXY_PID=$!
-
-cleanup() {
-  kill "${API_PID:-}" 2>/dev/null || true
-  kill "${VITE_PID:-}" 2>/dev/null || true
-  kill "${PROXY_PID:-}" 2>/dev/null || true
-}
-trap 'cleanup; cleanup_lock' EXIT
 
 echo "Installing dependencies..."
 pnpm install
@@ -77,13 +60,19 @@ else
   echo "DATABASE_URL not set; using file storage fallback"
 fi
 
+cleanup() {
+  kill "${API_PID:-}" 2>/dev/null || true
+  kill "${VITE_PID:-}" 2>/dev/null || true
+}
+trap 'cleanup; cleanup_lock' EXIT
+
 echo "Starting API server on port 3001..."
 PORT=3001 API_PORT=3001 pnpm --filter @workspace/api-server run dev &
 API_PID=$!
 
-echo "Starting Candy CrackZZZ Vite frontend on port 5001..."
-FRONTEND_PORT=5001 PORT=5001 API_PORT=3001 pnpm --filter @workspace/candy-crackzzz run dev &
+echo "Starting Candy CrackZZZ Vite frontend directly on port 5000..."
+FRONTEND_PORT=5000 PORT=5000 API_PORT=3001 pnpm --filter @workspace/candy-crackzzz run dev &
 VITE_PID=$!
 
 # Keep this workflow alive while either child process is alive.
-wait -n "$API_PID" "$VITE_PID" "$PROXY_PID"
+wait -n "$API_PID" "$VITE_PID"
