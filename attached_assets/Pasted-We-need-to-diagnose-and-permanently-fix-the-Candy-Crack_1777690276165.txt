@@ -1,0 +1,281 @@
+We need to diagnose and permanently fix the Candy CrackZZZ fresh Replit import white screen / 502 problem. Do not just “try fixes.” I need you to prove exactly what is wrong, fix only the real cause, and give me a repeatable procedure for next time so I do not waste credits again.
+
+Context:
+This repo is Candy CrackZZZ 7.
+Current target repo state should be GitHub main at:
+a3e5ae8 Run Vite directly on port 5000
+
+Known history:
+The app has repeatedly shown a white screen or 502 after fresh Replit imports or checkpoints. The same symptom has had different causes in the past:
+1. Duplicate workflows running at the same time.
+2. Ghost Vite/API processes holding ports.
+3. Vite silently moving from 5000 to 5001.
+4. Replit runButton workflow not registering waitForPort correctly.
+5. A temporary proxy-server.cjs workaround causing public Replit dev-domain 502.
+6. Possible browser runtime React crash after HTML loads.
+
+Current desired architecture:
+- One workflow only: Start application
+- Start application runs: bash scripts/replit-start.sh
+- Workflow waits for port 5000
+- Frontend/Vite runs directly on 0.0.0.0:5000
+- API runs on 3001
+- No active proxy-server.cjs in normal dev startup
+- No Vite frontend on 5001 in normal dev startup
+- Vite must use strictPort so it never jumps to another port
+
+Do not add app features.
+Do not edit products, checkout, admin, rewards, Staff Referralzzz, UI, or business logic.
+Do not randomly restart over and over.
+Do not claim it is fixed until you have tested the actual Replit preview and open-in-new-tab public dev URL.
+
+STEP 1 — Confirm exact repo state
+
+Run:
+
+cd /home/runner/workspace
+
+echo "=== GIT STATE ==="
+git status
+git log --oneline --max-count=8
+git branch --show-current
+git remote -v
+
+If local branch is not exactly on origin/main or has checkpoint commits causing divergence, report that clearly before changing anything.
+
+STEP 2 — Inspect the startup files
+
+Run:
+
+echo "=== .REPLIT ==="
+sed -n '1,140p' .replit
+
+echo "=== START SCRIPT ==="
+sed -n '1,240p' scripts/replit-start.sh
+
+echo "=== VITE CONFIG ==="
+sed -n '1,200p' artifacts/candy-crackzzz/vite.config.ts
+
+echo "=== PACKAGE SCRIPTS ==="
+node -e "const p=require('./artifacts/candy-crackzzz/package.json'); console.log(p.scripts)"
+
+Verify these conditions:
+- .replit runButton is Start application
+- only one active workflow is needed for preview
+- workflow waits for port 5000
+- scripts/replit-start.sh does not start proxy-server.cjs
+- scripts/replit-start.sh does not start Vite on 5001
+- Vite defaults to 5000
+- Vite has strictPort: true
+- API proxy points to 127.0.0.1:3001
+
+If any of those are wrong, report exactly which line is wrong before fixing.
+
+STEP 3 — Check what is actually running
+
+Run:
+
+echo "=== PROCESS CHECK ==="
+pgrep -af "proxy-server|vite|api-server|replit-start|node --enable-source-maps|pnpm" || true
+
+echo "=== LOCAL ROUTE CHECKS ==="
+curl -i http://127.0.0.1:5000/ | sed -n '1,25p'
+echo "--- API direct ---"
+curl -i http://127.0.0.1:3001/api/cc/bootstrap | sed -n '1,25p'
+echo "--- API through Vite ---"
+curl -i http://127.0.0.1:5000/api/cc/bootstrap | sed -n '1,25p'
+echo "--- 5001 should NOT be active ---"
+curl -i http://127.0.0.1:5001/ | sed -n '1,20p' || true
+
+Interpret the results:
+- If 5000 does not return HTML, this is a startup/workflow/port issue.
+- If 3001 does not return JSON, this is an API issue.
+- If 5000 returns HTML but preview is white, this is either a browser runtime crash or Replit public dev-domain proxy issue.
+- If 5001 returns HTML, Vite is still running on the old/wrong port.
+- If proxy-server.cjs is running, the old proxy workaround is still active and must be removed from the active startup path.
+
+STEP 4 — Check for old proxy/5001 leftovers
+
+Run:
+
+echo "=== OLD PROXY / 5001 REFERENCES ==="
+grep -R "proxy-server\\|5001\\|PREVIEW_PROXY\\|VITE_TARGET" -n .replit scripts artifacts/candy-crackzzz/vite.config.ts artifacts/candy-crackzzz/package.json || true
+
+Allowed:
+- proxy-server.cjs may exist as an unused file only.
+
+Not allowed in active startup:
+- scripts/replit-start.sh running proxy-server.cjs
+- .replit using FRONTEND_PORT=5001
+- Vite defaulting to 5001
+- active workflow relying on 5001
+
+STEP 5 — Build and typecheck
+
+Run:
+
+echo "=== FRONTEND BUILD ==="
+pnpm --filter @workspace/candy-crackzzz run build
+
+echo "=== FRONTEND TYPECHECK ==="
+pnpm --filter @workspace/candy-crackzzz run typecheck
+
+If either fails:
+- Stop diagnosing ports.
+- Report that this is a code/build issue.
+- Fix only the exact failing file.
+- Re-run build/typecheck.
+
+If both pass:
+- Continue.
+
+STEP 6 — Decide the real failure category
+
+Use this decision tree:
+
+CASE A — Local 5000 fails:
+Fix startup/workflow/port.
+Make sure Vite runs directly on 5000 with strictPort.
+Make sure only one workflow starts the app.
+
+CASE B — Local 5000 works, local 3001 works, but public Replit dev-domain gets 502:
+This is Replit public proxy/workflow routing.
+Check that runButton is Start application, waitForPort=5000 is on the active workflow, outputType=webview is set, and Vite binds to 0.0.0.0:5000 directly.
+Do not re-add proxy-server.cjs unless you can prove direct Vite cannot work.
+
+CASE C — Local 5000 works and public preview loads HTML, but screen is white:
+This is a frontend runtime crash.
+Do not work on ports.
+Open the browser console and capture the first red error.
+If needed, add a boot-level error screen in main.tsx so future crashes show the error instead of a plain white screen.
+
+STEP 7 — Fix only the proven cause
+
+Valid fixes:
+
+If duplicate workflows:
+- Edit .replit so runButton is Start application.
+- Keep one Start application workflow.
+- waitForPort must be 5000.
+- Remove Project workflow or make sure it does not also call scripts/replit-start.sh.
+- Explain exactly what duplicate workflow was removed.
+
+If ghost/stale process:
+- Kill stale vite/api/replit-start processes.
+- Remove stale lock:
+  rm -rf /tmp/candy-crackzzz-start.lock
+- Restart once with the Run button.
+- Explain which PID/process was holding the port.
+
+If Vite wrong port:
+- Update artifacts/candy-crackzzz/vite.config.ts:
+  default frontend port 5000
+  strictPort true
+  host 0.0.0.0
+  API proxy to 127.0.0.1:3001
+- Update scripts/replit-start.sh:
+  API on 3001
+  Vite directly on 5000
+  no proxy-server.cjs
+  no 5001
+- Explain why 5001 caused Replit preview/public domain failure.
+
+If custom proxy issue:
+- Remove proxy-server.cjs from active startup.
+- Put Vite directly on port 5000.
+- Leave proxy-server.cjs unused or delete it only if safe.
+- Explain why local worked but public Replit dev-domain failed.
+
+If runtime crash:
+- Capture first red browser console error.
+- Fix the exact component/context/import causing it.
+- Add a visible boot error fallback in main.tsx if needed.
+- Do not touch Replit ports.
+
+STEP 8 — Add a non-destructive diagnostic script
+
+Add scripts/diagnose-replit.sh.
+
+It should not kill anything.
+It should print:
+- git state
+- first 100 lines of .replit
+- key parts of scripts/replit-start.sh
+- key Vite port settings
+- running processes
+- curl checks for:
+  http://127.0.0.1:5000/
+  http://127.0.0.1:3001/api/cc/bootstrap
+  http://127.0.0.1:5000/api/cc/bootstrap
+  http://127.0.0.1:5001/
+- grep for proxy-server/5001/PREVIEW_PROXY/VITE_TARGET
+- a short interpretation guide
+
+Make it executable:
+chmod +x scripts/diagnose-replit.sh
+
+STEP 9 — Final verification
+
+After the fix, run:
+
+echo "=== FINAL PROCESS CHECK ==="
+pgrep -af "proxy-server|vite|api-server|replit-start|node --enable-source-maps|pnpm" || true
+
+echo "=== FINAL LOCAL CHECKS ==="
+curl -i http://127.0.0.1:5000/ | sed -n '1,20p'
+curl -i http://127.0.0.1:3001/api/cc/bootstrap | sed -n '1,20p'
+curl -i http://127.0.0.1:5000/api/cc/bootstrap | sed -n '1,20p'
+
+echo "=== FINAL BUILD CHECKS ==="
+pnpm --filter @workspace/candy-crackzzz run build
+pnpm --filter @workspace/candy-crackzzz run typecheck
+
+Then visually verify:
+- Replit preview pane loads homepage.
+- Open in new tab loads homepage.
+- /menu loads.
+- /admin/login loads.
+- No public dev-domain 502.
+- No plain white screen.
+
+STEP 10 — Required final report
+
+Your final report must use these headings:
+
+1. Current symptom
+Say whether this was white screen, 502, public dev-domain failure, or runtime crash.
+
+2. What was working
+List which local routes returned 200.
+
+3. What was broken
+Identify the exact broken layer:
+workflow, port, Vite, API, Replit public proxy, old proxy workaround, or React runtime.
+
+4. Exact evidence
+Quote the command output that proved the cause.
+
+5. Fix performed
+List exact files changed and what changed in each.
+
+6. Why this fix prevents it next time
+Explain in plain English.
+
+7. What I should do next time before using Agent
+Give this exact checklist:
+- Run scripts/diagnose-replit.sh
+- Check whether 5000 returns HTML
+- Check whether 3001/api/cc/bootstrap returns JSON
+- Check whether 5001 or proxy-server is running
+- If local works but preview is white, check browser console before changing ports
+
+8. Do not do this again
+List what wasted time:
+- random restarts
+- changing features while startup is broken
+- chasing ports after 5000 already returns HTML
+- assuming every white screen is the same cause
+- re-adding proxy-server.cjs without proof
+
+Do not finish with “it should work.”
+Confirm exactly what was tested.
