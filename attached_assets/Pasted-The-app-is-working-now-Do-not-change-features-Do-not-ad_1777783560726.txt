@@ -1,0 +1,194 @@
+The app is working now. Do not change features. Do not add /api/healthz yet. Do not touch products, checkout, rewards, admin, Staff Referralzzz, UI, or business logic.
+
+I need a clear final explanation of exactly what happened, exactly what changed, and exactly what to do next time to prevent or fix this without wasting credits.
+
+Please write a detailed post-fix report and prevention guide.
+
+Use these headings:
+
+1. Final working status
+
+Confirm the app is currently working and list exactly what was tested:
+- public Replit dev URL
+- embedded Preview pane
+- /menu
+- /admin/login
+- local 5000
+- API 3001
+- frontend /api proxy if applicable
+- build
+- typecheck if run
+
+2. The short version
+
+Explain in plain English what the real cause was.
+
+Make it very clear that the final root cause was not React, not product code, and not normal Vite local startup. The real issue was Replit’s Helium/microVM public dev-domain routing needing the native artifact workflow/artifact-router in previewMode=true.
+
+3. Timeline of wrong turns and what each one taught us
+
+Explain each issue we hit:
+
+- Duplicate workflows / ghost ports made the first white screens confusing.
+- The old custom proxy-server.cjs workaround made local preview behave differently from the public URL.
+- The dynamic await import("./App") in main.tsx caused a temporary Vite HMR/root-empty white screen.
+- Browser cache made it look like the old broken main.tsx was still active.
+- Incognito showing HTTP 502 proved it was not cache.
+- Local 5000 returning 200 while the public URL returned 502 proved the app was running but Replit public routing was broken.
+- Manually starting artifact-router did not work because it ran with previewMode=false.
+- The native artifact workflow worked because Replit/goval starts artifact-router with previewMode=true and registers the public dev-domain.
+
+4. Exact final root cause
+
+Explain this carefully:
+
+- In this Replit Helium/microVM setup, the public picard.replit.dev URL is not reliably fixed just by local Vite running on port 5000.
+- The public dev-domain needs Replit’s native artifact workflow to start artifact-router with previewMode=true.
+- Manual artifact-router from scripts/replit-start.sh ran with previewMode=false, so it did not call/register PublishPortRequest with Replit’s control plane.
+- That is why localhost could show 200 while the public URL still showed 502.
+- The artifact workflow was failing because artifact.toml ports did not match the actual ports/env values.
+- Once artifact.toml was aligned and the native artifact workflow started properly, the public URL returned 200.
+
+5. Exact files changed
+
+List every changed file and explain what changed in each.
+
+Include at least:
+
+- artifacts/candy-crackzzz/artifact.toml
+  Explain the old port and new port, and why this matched the actual Vite/frontend port used by the artifact workflow.
+
+- artifacts/api-server/artifact.toml
+  Explain the old port and new port, and why API needed to align with 3001 / API_PORT / Vite proxy.
+
+- scripts/replit-start.sh
+  Explain that manual artifact-router startup was removed because it only ran previewMode=false and blocked/confused the native artifact workflow.
+  Explain what this script is for now: local/IDE embedded preview and dev/HMR, not public dev-domain registration.
+
+- .replit, if changed or still relevant
+  Explain what it does and what it does not do in this Helium/artifact setup.
+  Explain whether Start application remains useful for embedded Preview.
+  Explain whether public URL uses artifact workflow instead.
+
+- artifacts/candy-crackzzz/src/main.tsx, if changed
+  Explain the temporary dynamic import issue and final safe version.
+
+- scripts/diagnose-replit.sh, if changed
+  Explain how to use it next time.
+
+- REPLIT_IMPORT_TROUBLESHOOTING.md, if changed
+  Summarize what was documented.
+
+6. Final working architecture
+
+Explain the final architecture in plain English:
+
+- Start application workflow:
+  Used for embedded IDE preview/local development/HMR.
+  Runs scripts/replit-start.sh.
+  Vite/local preview on 5000.
+  API on 3001.
+
+- artifacts/candy-crackzzz: web workflow:
+  Required for public Replit dev-domain.
+  Starts artifact-router through Replit/goval context.
+  artifact-router runs with previewMode=true.
+  Registers public URL with Replit control plane.
+
+- API artifact:
+  Uses correct API port.
+  Must match frontend proxy / environment.
+
+Explain which workflow controls which kind of preview:
+- embedded Preview pane
+- public open-in-new-tab picard.replit.dev URL
+
+7. How to prevent this in the future
+
+Give me exact rules:
+
+- Do not manually run artifact-router from scripts/replit-start.sh.
+- Do not reintroduce proxy-server.cjs for normal startup unless there is proof.
+- Keep artifact.toml ports aligned with the actual ports used by the artifact workflows.
+- Keep API port consistent across API server, Vite proxy, artifact.toml, and env.
+- If the public URL gets 502 but localhost works, suspect artifact workflow/public routing, not React.
+- If localhost 5000 works and 3001 works, stop changing app code.
+- If public URL is white but not 502, inspect browser console and #root.
+- If incognito gets 502, it is not browser cache.
+
+8. Exact future troubleshooting checklist
+
+Create a step-by-step checklist I can follow next time:
+
+A. First classify the symptom:
+- HTTP 502
+- blank white with no error page
+- embedded Preview only
+- public URL only
+- both Preview and public URL
+
+B. Then run:
+bash scripts/diagnose-replit.sh
+
+C. Then check:
+- local 5000
+- API 3001
+- public URL
+- artifact workflow status
+- Start application workflow status
+- 5001/old proxy not active unless intentionally used
+- browser console if HTML loads
+
+D. If local works but public URL is 502:
+- do not edit React
+- do not change products/features
+- check artifacts/candy-crackzzz/artifact.toml
+- check artifacts/api-server/artifact.toml
+- restart the native artifact workflow
+- verify artifact-router previewMode=true or equivalent proof
+- verify public URL returns 200
+
+E. If local works and public URL loads HTML but is blank white:
+- inspect console
+- check #root length
+- check main.tsx
+- check AppContext/bootstrap
+- check CSS/overlay
+
+F. If local 5000 fails:
+- check Start application workflow
+- check Vite port
+- check strictPort
+- check stale processes
+
+9. Commands to run next time
+
+Give me a copy/paste block of commands:
+
+- git state
+- process check
+- local curl checks
+- public URL curl check
+- grep for stale proxy/5001/artifact references
+- build/typecheck
+
+10. What not to do next time
+
+List things that wasted time:
+- assuming every white screen is the same
+- chasing React when public URL is 502
+- blaming browser cache after incognito also gets 502
+- manually starting artifact-router and assuming it registered public routing
+- re-adding proxy-server.cjs
+- changing features while startup/routing is broken
+- relying only on localhost checks to claim public URL is fixed
+
+11. Final permanent summary
+
+End with a short plain-English summary I can save:
+
+Example:
+“Local Vite on 5000 proves the app works inside the Replit container, but the public picard.replit.dev URL in Helium mode depends on the native artifact workflow registering the public route. Manual artifact-router did not register because it ran previewMode=false. The permanent fix was aligning artifact.toml ports and letting the native artifact workflow own public routing.”
+
+Do not make new code changes unless something is still uncommitted or undocumented.
+If changes are uncommitted, show git status and ask/commit only the routing/troubleshooting changes.
