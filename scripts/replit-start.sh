@@ -1,22 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Candy CrackZZZ Replit import starter
+# Candy CrackZZZ — "Start application" workflow
 #
-# Fresh-import port plan:
-#   5000 = Vite frontend / Replit webview preview
-#   3001 = Express/API server
+# This workflow serves the Replit IDE's embedded Preview pane (port 5000).
+# It does NOT make the public dev-domain URL work in Helium/microVM mode.
 #
-# One workflow only: "Start application"
-# waitForPort = 5000
-# Do not start proxy-server.cjs. Do not start Vite on 5001.
+# PUBLIC URL (*.picard.replit.dev) is handled exclusively by Replit's
+# native "artifacts/candy-crackzzz: web" artifact workflow, which runs
+# Vite on port 5001 (FRONTEND_PORT from userenv) and starts the
+# artifact-router in previewMode=true via goval IPC, which then registers
+# the domain with Replit's control plane (PublishPortRequest gRPC call).
+#
+# This "Start application" script only:
+#   5000 = Vite dev (waitForPort=5000 → Replit Preview pane / HMR)
+#   3001 = API dev (Vite /api proxy target)
+#
+# The artifact-router is intentionally NOT started here because:
+#   - Without goval IPC context it runs in previewMode=false and never
+#     calls PublishPortRequest, so it cannot make the public URL work.
+#   - Its port 8000 listener would conflict with the artifact workflow's
+#     own artifact-router when both run simultaneously.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-# Defensively unset stale userenv.shared values that .replit may still carry
-# from the old proxy-server.cjs architecture. Even if .replit sets these, the
-# exports below override them for all child processes so Vite always lands on 5000.
 unset PREVIEW_PROXY_PORT VITE_TARGET_PORT 2>/dev/null || true
 export FRONTEND_PORT=5000
 export PORT=5000
@@ -35,9 +43,6 @@ freeport() {
   fi
 }
 
-# Always free ports unconditionally so every workflow start is clean.
-# Do NOT check "already healthy" and skip — that causes tail -f /dev/null to hold
-# while the previous process dies, leaving nothing serving on port 5000.
 freeport 3001
 freeport 5000
 
@@ -52,19 +57,16 @@ else
 fi
 
 cleanup() {
-  kill "${API_PID:-}" 2>/dev/null || true
-  kill "${VITE_PID:-}" 2>/dev/null || true
+  kill "${API_PID:-}" "${VITE_PID:-}" 2>/dev/null || true
 }
 trap cleanup EXIT
 
-echo "Starting API server on port 3001..."
+echo "Starting API dev server on port 3001 (for Vite /api proxy)..."
 PORT=3001 API_PORT=3001 pnpm --filter @workspace/api-server run dev &
 API_PID=$!
 
-echo "Starting Candy CrackZZZ Vite frontend directly on port 5000..."
+echo "Starting Vite dev server on port 5000 (Preview pane + HMR)..."
 FRONTEND_PORT=5000 PORT=5000 API_PORT=3001 pnpm --filter @workspace/candy-crackzzz run dev &
 VITE_PID=$!
 
-# Keep this workflow alive while either child process is alive.
-# wait -n exits as soon as the first child exits so Replit can restart cleanly.
 wait -n "$API_PID" "$VITE_PID"

@@ -1,16 +1,23 @@
 kind = "api"
-previewPath = "/api" # TODO - should be excluded from preview in the first place
+previewPath = "/api"
 title = "API Server"
 version = "1.0.0"
 id = "3B4_FFSkEVBkAeYMFRJ2e"
 
 [[services]]
-localPort = 8080
+# localPort must match API_PORT from userenv.shared (3001).
+# goval environment has API_PORT=3001; Vite proxies /api to that port.
+# The artifact-router also starts the API dev server with PORT=3001
+# (from [services.env]) so both Vite proxy and artifact routing align.
+localPort = 3001
 name = "API Server"
 paths = ["/api"]
 
 [services.development]
 run = "pnpm --filter @workspace/api-server run dev"
+
+[services.env]
+PORT = "3001"
 
 [services.production]
 
@@ -25,7 +32,7 @@ NODE_ENV = "production"
 args = ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
 
 [services.production.run.env]
-PORT = "8080"
+PORT = "3001"
 NODE_ENV = "production"
 
 [services.production.health.startup]
