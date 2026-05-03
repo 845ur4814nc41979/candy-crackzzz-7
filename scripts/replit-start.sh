@@ -7,11 +7,20 @@ set -euo pipefail
 #   5000 = Vite frontend / Replit webview preview
 #   3001 = Express/API server
 #
-# Do not start a separate Vite workflow or API workflow. The single
-# "Start application" workflow should run this script and wait for port 5000.
+# One workflow only: "Start application"
+# waitForPort = 5000
+# Do not start proxy-server.cjs. Do not start Vite on 5001.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+
+# Defensively unset stale userenv.shared values that .replit may still carry
+# from the old proxy-server.cjs architecture. Even if .replit sets these, the
+# exports below override them for all child processes so Vite always lands on 5000.
+unset PREVIEW_PROXY_PORT VITE_TARGET_PORT 2>/dev/null || true
+export FRONTEND_PORT=5000
+export PORT=5000
+export API_PORT=3001
 
 LOCK_DIR="/tmp/candy-crackzzz-start.lock"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -46,7 +55,7 @@ freeport() {
   fi
 }
 
-# Clean only the app ports after the health check so we do not kill a good run.
+# Free app ports only after the health check above so we do not kill a good run.
 freeport 3001
 freeport 5000
 
