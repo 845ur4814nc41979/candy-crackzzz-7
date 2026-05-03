@@ -1,0 +1,47 @@
+Diagnosing 502 error
+A real 502 — the workflow dropped. Let me check everything at once.
+
+
+2 actions
+The workflow log timestamp is 020504 — it restarted at 2:05 AM. During that restart window port 5000 drops and the public proxy returns 502. Let me check what's happening right now.
+
+
+2 actions
+Local is fully healthy — port 5000 returns 200, port 3001 returns 200, all processes running. The 502 is on Replit's public proxy side. This happens when Replit's routing cache for the public domain loses sync with the active workflow. The fix is a deliberate single workflow restart so Replit re-establishes the proxy connection to port 5000.
+
+
+2 actions
+Workflow restarted. Let me verify all layers are healthy now.
+
+
+2 actions
+All layers healthy. Let me take a screenshot to confirm the public preview is rendering.
+
+
+2 actions
+App is back up and rendering correctly. Here's the precise explanation of what caused each problem and what fixed it.
+
+What happened — three separate problems, three different causes:
+
+1. First white screen (after I added dynamic import)
+I wrote await import("./App") in main.tsx. That makes the entry point an async module. Vite's HMR doesn't handle async entry points correctly — it reloaded the module but the async boot never re-ran, so #root stayed empty. Fixed by reverting to a static import App from "./App" while keeping the try/catch around createRoot().render().
+
+2. Second white screen (browser cache)
+After fixing the code, your browser was still running the cached broken version from fix #1. The server was serving the correct file but the browser had the old one. Fixed by a hard refresh (Ctrl+Shift+R / Cmd+Shift+R).
+
+3. 502 (Replit public proxy lost sync)
+The 502 is not an app code issue. It happens when Replit's public domain proxy loses its connection to the workflow — usually after a workflow restart or when the proxy's routing table goes stale. The app was locally healthy the entire time (5000 → 200, 3001 → 200). Fixed by restarting the "Start application" workflow once, which forces Replit to re-establish the proxy connection to port 5000.
+
+Current verified state:
+
+Check	Result
+127.0.0.1:5000/	200 OK HTML ✓
+127.0.0.1:3001/api/cc/bootstrap	200 OK JSON, 17 products ✓
+127.0.0.1:5001/	connection refused ✓
+No proxy-server.cjs in processes	✓
+Browser console	[vite] connected. — no errors ✓
+App renders	homepage, nav, logo — fully visible ✓
+What to do next time you see 502 specifically:
+The app is almost certainly fine locally. Don't change any code. Restart the "Start application" workflow once from the Replit panel, wait ~15 seconds for it to report ready, then refresh the public URL. If it's still 502 after one restart, run bash scripts/diagnose-replit.sh to confirm local is healthy before touching anything else.
+
+Next, I can add a /health endpoint to the API that returns structured JSON (DB connected, product count, uptime) so diagnose-replit.sh can confirm the full stack in a single call instead of four separate curl commands. Would you like me to do that?
