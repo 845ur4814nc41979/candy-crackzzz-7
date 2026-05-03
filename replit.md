@@ -106,6 +106,23 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - Font: Nunito (Google Fonts)
 - Wouter v3 routing: Link renders as `<a>` directly — never nest `<a>` inside Link
 
+## Helium/microVM Public URL Routing (SOLVED)
+
+In Replit's Helium/microVM mode (`REPLIT_IN_MICROVM=true`), the `[[ports]]` static config in `.replit` does NOT route the public dev-domain URL. All public-domain routing goes through the `artifact-router` binary, which must run with `previewMode=true` (only possible when started by goval — Replit's internal repl runner — not from a custom shell script).
+
+**Solution**: Use the native `"artifacts/candy-crackzzz: web"` artifact workflow as the active workflow for the public URL. This gives the artifact-router goval IPC context → `previewMode=true` → `PublishPortRequest` gRPC call → public URL registered with Replit's control plane.
+
+**Port alignment (critical)**:
+- `userenv.shared` has `FRONTEND_PORT=5001` — goval passes this to Vite when starting the artifact workflow, so Vite binds on **5001**.
+- `candy-crackzzz/artifact.toml` `localPort` must be **5001** (was 25876 — caused timeout).
+- `userenv.shared` has `API_PORT=3001` — Vite proxies `/api` to port 3001.
+- `api-server/artifact.toml` `localPort` must be **3001** (was 8080 — mismatched Vite proxy).
+- `[services.env]` in api-server artifact.toml sets `PORT=3001` so the artifact-router starts the API dev server on the right port.
+
+**Two workflows run simultaneously**:
+1. `"artifacts/candy-crackzzz: web"` — goval starts Vite on 5001, artifact-router (previewMode=true) starts API on 3001, registers public URL. **This is the public URL workflow.**
+2. `"Start application"` — starts Vite on 5000 (waitForPort=5000) + API on 3001 for the Replit IDE embedded Preview pane with HMR. The artifact-router is intentionally NOT started here (no goval context → previewMode=false → useless, and its port 8000 listener would conflict with the artifact workflow's own artifact-router).
+
 ## WHAT AUSTIN NEEDS TO DO NEXT
 
 The app is production-ready and runs gracefully without the optional secrets below — orders and messages will still save and appear in the admin inbox + bell. Add the optional secrets only when you want live email/SMS alerts.

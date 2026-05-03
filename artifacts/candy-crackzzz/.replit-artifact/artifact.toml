@@ -12,7 +12,11 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 25876
+# localPort must match FRONTEND_PORT from userenv.shared (5001).
+# goval starts Vite via the dev command using userenv env vars,
+# so Vite binds on FRONTEND_PORT=5001. The artifact-router then
+# routes the public domain "/" to this local port.
+localPort = 5001
 
 [services.development]
 run = "pnpm --filter @workspace/candy-crackzzz run dev"
@@ -27,5 +31,5 @@ from = "/*"
 to = "/index.html"
 
 [services.env]
-PORT = "25876"
+PORT = "5001"
 BASE_PATH = "/"

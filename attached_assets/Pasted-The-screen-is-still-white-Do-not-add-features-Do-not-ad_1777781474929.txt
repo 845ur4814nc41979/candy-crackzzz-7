@@ -1,0 +1,216 @@
+The screen is still white. Do not add features. Do not add /health. Do not change products, rewards, checkout, admin, Staff Referralzzz, UI, or business logic.
+
+We need to diagnose this exact current white screen and explain every step before fixing anything.
+
+Important:
+A white screen and an HTTP 502 are not the same thing. First determine which one this is.
+
+Current expected architecture:
+- .replit runButton = "Start application"
+- Start application runs bash scripts/replit-start.sh
+- waitForPort = 5000
+- Vite frontend runs directly on 0.0.0.0:5000
+- API runs on 3001
+- Vite strictPort = true
+- No proxy-server.cjs running
+- No frontend on 5001
+
+Step 1 — Identify the exact symptom
+
+Check the actual page the user sees.
+
+Answer clearly:
+1. Is the page showing an HTTP 502 error?
+2. Is it a blank white page with no text?
+3. Is it the Replit embedded Preview pane only?
+4. Is the open-in-new-tab public URL also white?
+5. Does incognito show 502 or white?
+6. What exact URL is being opened?
+
+Do not proceed until you classify it as one of these:
+- Replit public proxy 502
+- Embedded Preview/canvas stale iframe
+- React runtime crash
+- Browser cache/localStorage issue
+- Local startup failure
+
+Step 2 — Run the non-destructive diagnostic script
+
+Run:
+
+cd /home/runner/workspace
+bash scripts/diagnose-replit.sh
+
+Show the important parts of the output.
+
+If diagnose-replit.sh is missing, create it, but do not change startup yet.
+
+Step 3 — Verify local services manually
+
+Run:
+
+echo "=== PROCESS CHECK ==="
+pgrep -af "proxy-server|vite|api-server|replit-start|node --enable-source-maps|pnpm" || true
+
+echo "=== LOCAL 5000 ==="
+curl -i http://127.0.0.1:5000/ | sed -n '1,25p'
+
+echo "=== API 3001 ==="
+curl -i http://127.0.0.1:3001/api/cc/bootstrap | sed -n '1,25p'
+
+echo "=== API THROUGH FRONTEND ==="
+curl -i http://127.0.0.1:5000/api/cc/bootstrap | sed -n '1,25p'
+
+echo "=== 5001 SHOULD NOT BE ACTIVE ==="
+curl -i http://127.0.0.1:5001/ | sed -n '1,20p' || true
+
+Expected:
+- 5000 returns 200 HTML
+- 3001 returns 200 JSON
+- 5000/api/cc/bootstrap returns 200 JSON
+- 5001 should fail/refuse
+- proxy-server.cjs should not be running
+
+Interpretation:
+If 5000 fails locally, this is startup/port/workflow.
+If 3001 fails, this is API.
+If 5000 works but public URL gives 502, this is Replit public proxy/workflow routing.
+If 5000 works and public URL loads but screen is blank white, this is likely React/browser runtime or stale iframe.
+
+Step 4 — If this is HTTP 502
+
+If the actual user-facing page says HTTP ERROR 502:
+
+Do not edit React.
+Do not edit Vite config.
+Do not add features.
+Do not change ports if local 5000 is healthy.
+
+Do this:
+1. Confirm local 5000 and 3001 are healthy.
+2. Restart only the active "Start application" workflow through Replit workflow controls.
+3. Wait 15–30 seconds.
+4. Recheck the public URL.
+5. Explain that Replit’s public dev-domain proxy lost sync with the active workflow and was re-registered by restarting Start application.
+
+Final report for 502 must say:
+- local app was healthy or not
+- which workflow was restarted
+- whether public URL recovered
+- what to do next time
+
+Step 5 — If this is blank white but NOT 502
+
+If 5000 returns HTML and the public URL does not show 502 but the page is blank white, check React boot and browser console.
+
+Run:
+
+echo "=== REACT BOOT CHECK ==="
+curl -s http://127.0.0.1:5000/ | grep -E "root|src=|@vite/client|main.tsx" | head -40
+
+echo "=== MAIN TSX CHECK ==="
+curl -s http://127.0.0.1:5000/src/main.tsx | head -80
+
+Then inspect the browser console of the exact white page and capture the first red error.
+
+If the console has a red error:
+- Quote the exact error.
+- Fix only that exact file.
+- Do not change ports.
+
+If the console has no red error:
+- Check whether #root is empty.
+
+In browser console, run:
+document.getElementById("root")?.innerHTML.length
+document.body.innerText.slice(0, 1000)
+
+Interpret:
+- root length 0 = React did not mount
+- root has content but white screen = CSS/layout/overlay issue
+- body has text but white = color/background/layout issue
+- body has no text = boot failure or stale iframe
+
+Step 6 — Verify main.tsx does not recreate the old bug
+
+Open:
+
+artifacts/candy-crackzzz/src/main.tsx
+
+Check:
+- It must NOT use await import("./App")
+- It must NOT make the entry point an async module
+- It should use static import App from "./App"
+- It may wrap createRoot().render() in try/catch
+- It may have window error/unhandledrejection fallback
+- The fallback must not break Vite HMR
+
+If main.tsx uses dynamic import or top-level await, remove it and explain that Vite HMR can leave #root empty with async entry modules.
+
+Step 7 — Check browser cache/localStorage only after server checks pass
+
+If local 5000 works, API works, main.tsx is correct, and Agent screenshot works, but user still sees white:
+
+Explain this may be browser/Replit iframe stale state.
+
+Tell user to:
+1. Open in new tab.
+2. Hard refresh Ctrl+Shift+R.
+3. Try incognito.
+4. Clear site data for the exact picard.replit.dev domain.
+5. Close and reopen the Replit Preview panel.
+
+But do not blame cache if incognito shows 502 — that is public proxy routing.
+
+Step 8 — Final verification
+
+After any fix or restart, verify:
+
+curl -i http://127.0.0.1:5000/ | sed -n '1,20p'
+curl -i http://127.0.0.1:3001/api/cc/bootstrap | sed -n '1,20p'
+curl -i http://127.0.0.1:5000/api/cc/bootstrap | sed -n '1,20p'
+curl -i http://127.0.0.1:5001/ | sed -n '1,20p' || true
+pgrep -af "proxy-server|vite|api-server|replit-start|node --enable-source-maps|pnpm" || true
+pnpm --filter @workspace/candy-crackzzz run build
+pnpm --filter @workspace/candy-crackzzz run typecheck
+
+Then visually verify:
+- embedded Replit preview
+- open-in-new-tab public URL
+- /menu
+- /admin/login
+- browser console has no fatal red error
+
+Final report required:
+
+Use these exact headings:
+
+1. Exact symptom this time
+Say 502, blank white page, stale iframe, React crash, cache issue, or local startup failure.
+
+2. What was working
+List actual local checks.
+
+3. What was broken
+Name the exact layer.
+
+4. Evidence
+Quote the command output or browser console error.
+
+5. Fix performed
+List files changed or workflow restarted. If no code change was needed, say that.
+
+6. Why it happened again
+Explain in plain English.
+
+7. What to do next time
+Give a short repeatable checklist:
+- If HTTP 502: restart only Start application workflow once.
+- If local 5000 fails: diagnose startup/port.
+- If local 5000 works but page blank: inspect browser console.
+- If main.tsx has await import/top-level async: remove it.
+- If user browser only: hard refresh/clear site data.
+
+Do not end with “should work.”
+End with:
+Confirmed tested: [list exact tests].
