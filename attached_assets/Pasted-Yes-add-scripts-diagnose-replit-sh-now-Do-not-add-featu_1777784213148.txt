@@ -1,0 +1,121 @@
+Yes, add scripts/diagnose-replit.sh now.
+
+Do not add features.
+Do not add /api/healthz yet.
+Do not change products, checkout, rewards, admin, Staff Referralzzz, UI, or business logic.
+Only add the diagnostic script and update documentation if needed.
+
+Create scripts/diagnose-replit.sh as a non-destructive diagnostic helper.
+
+It must NOT:
+- kill processes
+- restart workflows
+- change ports
+- edit files
+- run migrations
+- modify app state
+
+It should only print information and explain what it means.
+
+The script should check and display:
+
+1. Git state
+- current branch
+- latest commits
+- working tree status
+
+2. Replit environment values
+Show relevant env values:
+- FRONTEND_PORT
+- API_PORT
+- PORT
+- REPLIT_HELIUM_ENABLED
+- REPLIT_IN_MICROVM
+- REPLIT_ARTIFACT_ROUTER
+- any VITE / PREVIEW values
+
+3. Running processes
+Check:
+- artifact-router
+- vite
+- api-server
+- replit-start.sh
+- proxy-server
+- node --enable-source-maps
+- pnpm
+
+4. Local port checks
+Run:
+curl -si http://127.0.0.1:5000/ | head -5
+curl -si http://127.0.0.1:5001/ | head -5
+curl -si http://127.0.0.1:3001/api/cc/bootstrap | head -5
+
+5. Public URL check
+If REPLIT_DEV_DOMAIN or a public URL can be detected, curl it.
+If not, print a reminder to manually test the picard.replit.dev URL.
+
+6. Artifact config checks
+Print the relevant port lines from:
+- artifacts/candy-crackzzz/.replit-artifact/artifact.toml
+- artifacts/api-server/.replit-artifact/artifact.toml
+
+Specifically compare:
+- candy-crackzzz artifact localPort should match FRONTEND_PORT used by the artifact workflow, currently 5001
+- api-server artifact localPort and PORT should match API_PORT, currently 3001
+
+7. Startup script check
+Verify:
+- scripts/replit-start.sh does NOT start artifact-router manually
+- scripts/replit-start.sh does NOT start proxy-server.cjs
+- Start application is for embedded preview/local Vite only
+
+8. Stale proxy check
+Search for:
+- proxy-server
+- PREVIEW_PROXY_PORT
+- VITE_TARGET_PORT
+- 25876
+- 8080
+- FRONTEND_PORT=5001
+- localPort
+
+Explain whether each match is expected or suspicious.
+
+9. Plain-English diagnosis guide
+At the bottom, print:
+
+If local 5000 works but public URL is 502:
+- Do not touch React.
+- Do not change products/features.
+- Check artifacts/candy-crackzzz: web workflow.
+- Check artifact.toml port alignment.
+- Restart the native artifact workflow.
+- Remember: public URL needs artifact-router previewMode=true from goval.
+
+If embedded Preview works but public URL fails:
+- Start application is fine.
+- Artifact workflow/public routing is the issue.
+
+If public URL returns 200 but page is blank white:
+- Now inspect browser console and #root.
+- This is likely React/runtime/CSS/loading state.
+
+If both 5000 and public URL fail:
+- Check Start application logs and Vite/API startup.
+
+10. Make it executable:
+chmod +x scripts/diagnose-replit.sh
+
+11. Run it once and show the output.
+
+12. Commit only this diagnostic script and any troubleshooting documentation update.
+
+Commit message:
+Add Replit routing diagnostic script
+
+Final report:
+Explain where the script is, how to run it, and what it tells me to do for:
+- public URL 502
+- embedded preview white screen
+- local 5000 failure
+- React blank screen after HTML loads
